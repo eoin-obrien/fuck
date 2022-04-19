@@ -1,0 +1,41 @@
+{
+  "name": "fuck",
+  "version": "0.1.0",
+  "description": "Brainfuck powered by WebAssembly",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests",
+    "asbuild:debug": "asc assembly/index.ts --target debug",
+    "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild": "npm run asbuild:debug && npm run asbuild:release",
+    "start": "npx serve ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eoin-obrien/fuck.git"
+  },
+  "keywords": [
+    "brainfuck",
+    "webassembly",
+    "wasm",
+    "fuck",
+    "compiler",
+    "interpreter"
+  ],
+  "author": "Eoin O'Brien",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eoin-obrien/fuck/issues"
+  },
+  "homepage": "https://github.com/eoin-obrien/fuck#readme",
+  "devDependencies": {
+    "assemblyscript": "0.20.4"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./build/release.js",
+      "types": "./build/release.d.ts"
+    }
+  }
+}
