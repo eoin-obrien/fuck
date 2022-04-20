@@ -8,6 +8,8 @@ export class Interpreter {
 
   constructor(code: string) {
     this.tokens = tokenize(code);
+    // TODO Are token objects too slow compared to arrays?
+    // TODO arrays: tokens, reps, jumps (merge reps and jumps?)
     this.brackets = matchBrackets(this.tokens);
   }
 
@@ -26,19 +28,19 @@ export class Interpreter {
       if (token.value === ">") {
         // Increment the data pointer
         if (dataPointer < memory.length - 1) {
-          dataPointer++;
+          dataPointer += <u8>token.repetitions;
         }
       } else if (token.value === "<") {
         // Decrement the data pointer
         if (dataPointer > 0) {
-          dataPointer--;
+          dataPointer -= <u8>token.repetitions;
         }
       } else if (token.value === "+") {
         // Increment the byte at the data pointer
-        memory[dataPointer]++;
+        memory[dataPointer] += <u8>token.repetitions;
       } else if (token.value === "-") {
         // Decrement the byte at the data pointer
-        memory[dataPointer]--;
+        memory[dataPointer] -= <u8>token.repetitions;
       } else if (token.value === ".") {
         // Output the byte at the data pointer
         output += String.fromCodePoint(memory[dataPointer]);

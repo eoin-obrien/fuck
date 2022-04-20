@@ -1,5 +1,5 @@
 import assert from "assert";
-import { execute } from "../build/debug.js";
+import { execute } from "../build/release.js";
 
 // http://brainfuck.org/tests.b
 

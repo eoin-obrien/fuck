@@ -3,6 +3,7 @@ export class Token {
   pos: i32;
   ln: i32;
   col: i32;
+  repetitions: i32 = 1;
 
   constructor(value: string, pos: i32, ln: i32, col: i32) {
     this.value = value;
@@ -13,6 +14,7 @@ export class Token {
 }
 
 const lexicon = [">", "<", "+", "-", ".", ",", "[", "]"];
+const repeatableTokens = [">", "<", "+", "-"];
 
 export function tokenize(code: string): Array<Token> {
   const tokens = new Array<Token>();
@@ -22,7 +24,13 @@ export function tokenize(code: string): Array<Token> {
     // Tokenize character
     const char = code.at(i);
     if (lexicon.includes(char)) {
-      tokens.push(new Token(char, tokens.length, line, column));
+      const prevToken = tokens.length ? tokens.at(-1) : null;
+      // Merge consecutive identical tokens
+      if (prevToken && repeatableTokens.includes(char) && char === prevToken.value) {
+        prevToken.repetitions++;
+      } else {
+        tokens.push(new Token(char, tokens.length, line, column));
+      }
     }
 
     // Increment line and column numbers
