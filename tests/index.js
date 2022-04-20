@@ -1,6 +1,9 @@
 import assert from "assert";
 import { execute } from "../build/debug.js";
 
+// http://brainfuck.org/tests.b
+
+// Test end-of-input behavior
 assert.strictEqual(
   execute(
     ">,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.",
@@ -9,10 +12,7 @@ assert.strictEqual(
   "LK\nLK\n"
 );
 
-console.log(execute("+[<+++++++++++++++++++++++++++++++++.]", "").length);
-
-console.log(execute("+[>+++++++++++++++++++++++++++++++++.]", "").length);
-
+// Goes to cell 30000 and reports from there with a #
 assert.strictEqual(
   execute(
     "++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.",
@@ -21,6 +21,7 @@ assert.strictEqual(
   "#\n"
 );
 
+// Complex smoke test
 assert.strictEqual(
   execute(
     '[]++++++++++[>>+>+>++++++[<<+<+++>>>-]<<<<-]"A*$";?@![#>>+<<]>[>>]<<<<[>++<[-]]>.>.',
@@ -28,6 +29,16 @@ assert.strictEqual(
   ),
   "H\n"
 );
+
+// Unmatched [
+assert.throws(() => {
+  execute("+++++[>+++++++>++<<-]>.>.[");
+})
+
+// Unmatched ]
+assert.throws(() => {
+  execute("+++++[>+++++++>++<<-]>.>.]");
+})
 
 // http://brainfuck.org/rot13.b
 assert.strictEqual(
