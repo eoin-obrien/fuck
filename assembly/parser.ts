@@ -26,7 +26,11 @@ export function tokenize(code: string): Array<Token> {
     if (lexicon.includes(char)) {
       const prevToken = tokens.length ? tokens.at(-1) : null;
       // Merge consecutive identical tokens
-      if (prevToken && repeatableTokens.includes(char) && char === prevToken.value) {
+      if (
+        prevToken &&
+        repeatableTokens.includes(char) &&
+        char === prevToken.value
+      ) {
         prevToken.repetitions++;
       } else {
         tokens.push(new Token(char, tokens.length, line, column));

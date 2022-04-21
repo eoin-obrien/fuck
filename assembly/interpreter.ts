@@ -1,19 +1,11 @@
-import { matchBrackets, Token, tokenize } from "./parser";
+import { Instruction } from "./bytecode";
 
 export class Interpreter {
   static memorySize: i32 = 30_000;
 
-  tokens: Token[];
-  brackets: Map<i32, i32>;
+  constructor() {}
 
-  constructor(code: string) {
-    this.tokens = tokenize(code);
-    // TODO Are token objects too slow compared to arrays?
-    // TODO arrays: tokens, reps, jumps (merge reps and jumps?)
-    this.brackets = matchBrackets(this.tokens);
-  }
-
-  execute(input: string): string {
+  execute(bytecode: Uint8Array, input: string): string {
     const memory: Uint8Array = new Uint8Array(Interpreter.memorySize);
     let instructionPointer: i32 = 0;
     let dataPointer: i32 = 0;
@@ -22,45 +14,46 @@ export class Interpreter {
 
     let output = "";
 
-    while (instructionPointer < this.tokens.length) {
-      const token = this.tokens.at(instructionPointer);
+    while (instructionPointer * 2 < bytecode.length) {
+      const op = bytecode.at(instructionPointer * 2);
+      const oparg = bytecode.at(instructionPointer * 2 + 1);
 
-      if (token.value === ">") {
+      if (op === Instruction.RIGHT) {
         // Increment the data pointer
         if (dataPointer < memory.length - 1) {
-          dataPointer += <u8>token.repetitions;
+          dataPointer++;
         }
-      } else if (token.value === "<") {
+      } else if (op === Instruction.LEFT) {
         // Decrement the data pointer
         if (dataPointer > 0) {
-          dataPointer -= <u8>token.repetitions;
+          dataPointer--;
         }
-      } else if (token.value === "+") {
+      } else if (op === Instruction.ADD) {
         // Increment the byte at the data pointer
-        memory[dataPointer] += <u8>token.repetitions;
-      } else if (token.value === "-") {
+        memory[dataPointer]++;
+      } else if (op === Instruction.SUB) {
         // Decrement the byte at the data pointer
-        memory[dataPointer] -= <u8>token.repetitions;
-      } else if (token.value === ".") {
+        memory[dataPointer]--;
+      } else if (op === Instruction.OUTPUT) {
         // Output the byte at the data pointer
         output += String.fromCodePoint(memory[dataPointer]);
-      } else if (token.value === ",") {
+      } else if (op === Instruction.INPUT) {
         // Input one byte to the byte at the data pointer
         if (inputPointer < input.length) {
           memory[dataPointer] = input.codePointAt(inputPointer++);
         }
-      } else if (token.value === "[") {
+      } else if (op === Instruction.OPEN) {
         // If the byte at the data pointer is zero, move the instruction pointer to the command after the next "]"
         if (memory[dataPointer] === 0) {
-          instructionPointer = this.brackets.get(token.pos);
+          instructionPointer += oparg;
         }
-      } else if (token.value === "]") {
+      } else if (op === Instruction.CLOSE) {
         // If the byte at the data pointer is non-zero, move the instruction pointer to the command after the previous "["
         if (memory[dataPointer] !== 0) {
-          instructionPointer = this.brackets.get(token.pos);
+          instructionPointer -= oparg + 1;
         }
       } else {
-        throw new SyntaxError(`Unknown token "${token.value}"`);
+        throw new SyntaxError(`Unknown bytecode op "${op}"`);
       }
 
       // Move to the next command
