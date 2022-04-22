@@ -30,7 +30,8 @@
   "homepage": "https://github.com/eoin-obrien/fuck#readme",
   "devDependencies": {
     "assemblyscript": "0.20.4",
-    "ava": "4.2.0"
+    "ava": "4.2.0",
+    "brainfuck-node": "1.0.2"
   },
   "type": "module",
   "exports": {
@@ -40,6 +41,7 @@
     }
   },
   "dependencies": {
+    "benny": "3.7.1",
     "chevrotain": "10.1.2",
     "concat-typed-array": "2.1.0"
   }
