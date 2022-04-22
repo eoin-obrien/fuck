@@ -29,7 +29,8 @@
   },
   "homepage": "https://github.com/eoin-obrien/fuck#readme",
   "devDependencies": {
-    "assemblyscript": "0.20.4"
+    "assemblyscript": "0.20.4",
+    "ava": "4.2.0"
   },
   "type": "module",
   "exports": {

@@ -1,48 +1,42 @@
-import assert from "assert";
-import { execute } from "../build/release.js";
+import test from "ava";
+import { run } from "../index.js";
 
-// http://brainfuck.org/tests.b
+// Test cases sourced from http://brainfuck.org/
 
-// Test end-of-input behavior
-assert.strictEqual(
-  execute(
+test("end-of-input is handled correctly", async (t) => {
+  const output = run(
     ">,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.",
     "\n"
-  ),
-  "LK\nLK\n"
-);
+  );
+  t.is(output, "LK\nLK\n");
+});
 
-// Goes to cell 30000 and reports from there with a #
-assert.strictEqual(
-  execute(
+test("memory is at least 30000 cells long", async (t) => {
+  const output = run(
     "++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.",
     ""
-  ),
-  "#\n"
-);
+  );
+  t.is(output, "#\n");
+});
 
-// Complex smoke test
-assert.strictEqual(
-  execute(
+test("extraneous characters are ignored", async (t) => {
+  const output = run(
     '[]++++++++++[>>+>+>++++++[<<+<+++>>>-]<<<<-]"A*$";?@![#>>+<<]>[>>]<<<<[>++<[-]]>.>.',
     ""
-  ),
-  "H\n"
-);
+  );
+  t.is(output, "H\n");
+});
 
-// Unmatched [
-assert.throws(() => {
-  execute("+++++[>+++++++>++<<-]>.>.[");
-})
+test("unmatched [", async (t) => {
+  t.throws(() => run("+++++[>+++++++>++<<-]>.>.[", ""));
+});
 
-// Unmatched ]
-assert.throws(() => {
-  execute("+++++[>+++++++>++<<-]>.>.]");
-})
+test("unmatched ]", async (t) => {
+  t.throws(() => run("+++++[>+++++++>++<<-]>.>.]", ""));
+});
 
-// http://brainfuck.org/rot13.b
-assert.strictEqual(
-  execute(
+test("rot13", async (t) => {
+  const output = run(
     `
 ,
 [>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-
@@ -64,13 +58,12 @@ assert.strictEqual(
 ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]>.[-]<,]
 `,
     "Guvf fubhyq or rapbqrq va ebg13"
-  ),
-  "This should be encoded in rot13"
-);
+  );
+  t.is(output, "This should be encoded in rot13");
+});
 
-// http://brainfuck.org/numwarp.b
-assert.strictEqual(
-  execute(
+test("numwarp", async (t) => {
+  const output = run(
     `
 >>>>+>+++>+++>>>>>+++[
   >,+>++++[>++++<-]>[<<[-[->]]>[<]>-]<<[
@@ -105,18 +98,21 @@ assert.strictEqual(
 ]
 `,
     "420.69"
-  ),
-  "          /\\\n" +
-    "          \\/\\\n" +
-    "        /    \n" +
-    "        \\/\\\n" +
-    "         \\/\n" +
-    "         \n" +
-    "    /\\  /\n" +
-    "    \\ \\\n" +
-    "  /\\ \\/\n" +
-    "   / \n" +
-    " \\ \\/\n" +
-    "\\/\\\n" +
-    "   \n"
-);
+  );
+  t.is(
+    output,
+    "          /\\\n" +
+      "          \\/\\\n" +
+      "        /    \n" +
+      "        \\/\\\n" +
+      "         \\/\n" +
+      "         \n" +
+      "    /\\  /\n" +
+      "    \\ \\\n" +
+      "  /\\ \\/\n" +
+      "   / \n" +
+      " \\ \\/\n" +
+      "\\/\\\n" +
+      "   \n"
+  );
+});

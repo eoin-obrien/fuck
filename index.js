@@ -1,11 +1,22 @@
 import { createToken, CstParser, Lexer } from "chevrotain";
 import concatTypedArray from "concat-typed-array";
-import { execute } from "./build/debug.js";
+import { instructionByteLength, interpret, Opcode } from "./build/release.js";
+
+const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+const clampUint8 = (num) => clamp(num, 0, 255);
+
+const makeInstruction = (opcode, oparg) => {
+  const buffer = new ArrayBuffer(instructionByteLength.value);
+  const view = new DataView(buffer);
+  view.setUint8(0, opcode);
+  view.setUint32(1, oparg);
+  return new Uint8Array(buffer);
+};
 
 const Right = createToken({ name: "Right", pattern: />/ });
 const Left = createToken({ name: "Left", pattern: /</ });
-const Increment = createToken({ name: "Increment", pattern: /\+/ });
-const Decrement = createToken({ name: "Decrement", pattern: /-/ });
+const Increment = createToken({ name: "Increment", pattern: /\++/ });
+const Decrement = createToken({ name: "Decrement", pattern: /-+/ });
 const Output = createToken({ name: "Output", pattern: /\./ });
 const Input = createToken({ name: "Input", pattern: /,/ });
 const Open = createToken({ name: "Open", pattern: /\[/ });
@@ -94,21 +105,27 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
     );
   }
 
+  // TODO handle right/left shift > 255
+  // TODO handle loop offsets > 255
+  // solution: oparg extension like Python?
+  // solution: u16/u32 oparg?
+  // solution: multiple steps? not viable for loops
+
   command(ctx) {
     if (ctx.loop) {
       return this.visit(ctx.loop);
     } else if (ctx.Right) {
-      return Uint8Array.of(0, 0);
+      return makeInstruction(Opcode.Right, 0);
     } else if (ctx.Left) {
-      return Uint8Array.of(1, 0);
+      return makeInstruction(Opcode.Left, 0);
     } else if (ctx.Increment) {
-      return Uint8Array.of(2, 0);
+      return makeInstruction(Opcode.Add, ctx.Increment[0].image.length);
     } else if (ctx.Decrement) {
-      return Uint8Array.of(3, 0);
+      return makeInstruction(Opcode.Sub, ctx.Decrement[0].image.length);
     } else if (ctx.Output) {
-      return Uint8Array.of(4, 0);
+      return makeInstruction(Opcode.Output, 0);
     } else if (ctx.Input) {
-      return Uint8Array.of(5, 0);
+      return makeInstruction(Opcode.Input, 0);
     } else {
       throw new Error("Unhandled command");
     }
@@ -116,8 +133,8 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
 
   loop(ctx) {
     const body = this.visit(ctx.commands);
-    const open = Uint8Array.of(6, body.length / 2);
-    const close = Uint8Array.of(7, body.length / 2);
+    const open = makeInstruction(Opcode.Open, body.length);
+    const close = makeInstruction(Opcode.Close, body.length);
     return concatTypedArray(Uint8Array, open, body, close);
   }
 }
@@ -140,9 +157,16 @@ function toBytecode(inputText) {
   return ast;
 }
 
-const inputText =
-  "++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.";
-console.log(inputText);
-const bytecode = toBytecode(inputText);
-console.log(bytecode);
-console.log(execute(bytecode, "\n"));
+export function run(code, input) {
+  console.time("parse");
+  const bytecode = toBytecode(code);
+  console.timeEnd("parse");
+  // console.log(bytecode);
+
+  console.time("interpret");
+  const result = interpret(bytecode, input);
+  console.timeEnd("interpret");
+  // console.log(result);
+
+  return result;
+}

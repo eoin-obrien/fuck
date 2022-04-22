@@ -1,68 +1,68 @@
-import { Instruction } from "./bytecode";
+import { instructionByteLength, Opcode } from "./bytecode";
 
-export class Interpreter {
-  static memorySize: i32 = 30_000;
+const memorySize: i32 = 30_000;
 
-  constructor() {}
+export function interpret(bytecode: ArrayBuffer, input: string): string {
+  console.time("wasm-interpret");
 
-  execute(bytecode: Uint8Array, input: string): string {
-    const memory: Uint8Array = new Uint8Array(Interpreter.memorySize);
-    let instructionPointer: i32 = 0;
-    let dataPointer: i32 = 0;
-    let inputPointer: i32 = 0;
-    let stepCount = 0;
+  const instructions = new DataView(bytecode);
+  const memory: Uint8Array = new Uint8Array(memorySize);
+  let instructionPointer: i32 = 0;
+  let dataPointer: i32 = 0;
+  let inputPointer: i32 = 0;
+  let stepCount: i32 = 0;
 
-    let output = "";
+  let output = "";
 
-    while (instructionPointer * 2 < bytecode.length) {
-      const op = bytecode.at(instructionPointer * 2);
-      const oparg = bytecode.at(instructionPointer * 2 + 1);
+  while (instructionPointer < bytecode.byteLength) {
+    const opcode = instructions.getUint8(instructionPointer);
+    const oparg = instructions.getUint32(instructionPointer + 1);
 
-      if (op === Instruction.RIGHT) {
-        // Increment the data pointer
-        if (dataPointer < memory.length - 1) {
-          dataPointer++;
-        }
-      } else if (op === Instruction.LEFT) {
-        // Decrement the data pointer
-        if (dataPointer > 0) {
-          dataPointer--;
-        }
-      } else if (op === Instruction.ADD) {
-        // Increment the byte at the data pointer
-        memory[dataPointer]++;
-      } else if (op === Instruction.SUB) {
-        // Decrement the byte at the data pointer
-        memory[dataPointer]--;
-      } else if (op === Instruction.OUTPUT) {
-        // Output the byte at the data pointer
-        output += String.fromCodePoint(memory[dataPointer]);
-      } else if (op === Instruction.INPUT) {
-        // Input one byte to the byte at the data pointer
-        if (inputPointer < input.length) {
-          memory[dataPointer] = input.codePointAt(inputPointer++);
-        }
-      } else if (op === Instruction.OPEN) {
-        // If the byte at the data pointer is zero, move the instruction pointer to the command after the next "]"
-        if (memory[dataPointer] === 0) {
-          instructionPointer += oparg;
-        }
-      } else if (op === Instruction.CLOSE) {
-        // If the byte at the data pointer is non-zero, move the instruction pointer to the command after the previous "["
-        if (memory[dataPointer] !== 0) {
-          instructionPointer -= oparg + 1;
-        }
-      } else {
-        throw new SyntaxError(`Unknown bytecode op "${op}"`);
+    if (opcode === Opcode.Right) {
+      // Increment the data pointer
+      if (dataPointer < memory.length - 1) {
+        dataPointer++;
       }
-
-      // Move to the next command
-      instructionPointer++;
-      stepCount++;
+    } else if (opcode === Opcode.Left) {
+      // Decrement the data pointer
+      if (dataPointer > 0) {
+        dataPointer--;
+      }
+    } else if (opcode === Opcode.Add) {
+      // Increment the byte at the data pointer
+      memory[dataPointer] += <u8>oparg;
+    } else if (opcode === Opcode.Sub) {
+      // Decrement the byte at the data pointer
+      memory[dataPointer] -= <u8>oparg;
+    } else if (opcode === Opcode.Output) {
+      // Output the byte at the data pointer
+      output += String.fromCodePoint(memory[dataPointer]);
+    } else if (opcode === Opcode.Input) {
+      // Input one byte to the byte at the data pointer
+      if (inputPointer < input.length) {
+        memory[dataPointer] = input.codePointAt(inputPointer++);
+      }
+    } else if (opcode === Opcode.Open) {
+      // If the byte at the data pointer is zero, move the instruction pointer to the command after the next "]"
+      if (memory[dataPointer] === 0) {
+        instructionPointer += oparg;
+      }
+    } else if (opcode === Opcode.Close) {
+      // If the byte at the data pointer is non-zero, move the instruction pointer to the command after the previous "["
+      if (memory[dataPointer] !== 0) {
+        instructionPointer -= oparg + instructionByteLength;
+      }
+    } else {
+      throw new SyntaxError(`Unknown bytecode op "${opcode}"`);
     }
 
-    console.log(`Step count: ${stepCount}`);
-
-    return output;
+    // Move to the next command
+    instructionPointer += instructionByteLength;
+    stepCount++;
   }
+
+  console.log(`Step count: ${stepCount}`);
+  console.timeEnd("wasm-interpret");
+
+  return output;
 }
