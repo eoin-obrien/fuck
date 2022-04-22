@@ -13,8 +13,8 @@ const makeInstruction = (opcode, oparg) => {
   return new Uint8Array(buffer);
 };
 
-const Right = createToken({ name: "Right", pattern: />/ });
-const Left = createToken({ name: "Left", pattern: /</ });
+const Right = createToken({ name: "Right", pattern: />+/ });
+const Left = createToken({ name: "Left", pattern: /<+/ });
 const Increment = createToken({ name: "Increment", pattern: /\++/ });
 const Decrement = createToken({ name: "Decrement", pattern: /-+/ });
 const Output = createToken({ name: "Output", pattern: /\./ });
@@ -115,9 +115,9 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
     if (ctx.loop) {
       return this.visit(ctx.loop);
     } else if (ctx.Right) {
-      return makeInstruction(Opcode.Right, 0);
+      return makeInstruction(Opcode.Right, ctx.Right[0].image.length);
     } else if (ctx.Left) {
-      return makeInstruction(Opcode.Left, 0);
+      return makeInstruction(Opcode.Left, ctx.Left[0].image.length);
     } else if (ctx.Increment) {
       return makeInstruction(Opcode.Add, ctx.Increment[0].image.length);
     } else if (ctx.Decrement) {

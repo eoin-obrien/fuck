@@ -20,14 +20,10 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
 
     if (opcode === Opcode.Right) {
       // Increment the data pointer
-      if (dataPointer < memory.length - 1) {
-        dataPointer++;
-      }
+      dataPointer += oparg;
     } else if (opcode === Opcode.Left) {
       // Decrement the data pointer
-      if (dataPointer > 0) {
-        dataPointer--;
-      }
+      dataPointer -= oparg;
     } else if (opcode === Opcode.Add) {
       // Increment the byte at the data pointer
       memory[dataPointer] += <u8>oparg;
