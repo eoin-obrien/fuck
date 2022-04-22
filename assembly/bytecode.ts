@@ -9,4 +9,5 @@ export enum Opcode {
   Input = 5,
   Open = 6,
   Close = 7,
+  Clear = 8,
 }

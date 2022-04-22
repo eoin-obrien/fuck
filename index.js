@@ -16,11 +16,12 @@ const makeInstruction = (opcode, oparg) => {
 const Right = createToken({ name: "Right", pattern: />+/ });
 const Left = createToken({ name: "Left", pattern: /<+/ });
 const Increment = createToken({ name: "Increment", pattern: /\++/ });
-const Decrement = createToken({ name: "Decrement", pattern: /-+/ });
+const Decrement = createToken({ name: "Decrement", pattern: /\-+/ });
 const Output = createToken({ name: "Output", pattern: /\./ });
 const Input = createToken({ name: "Input", pattern: /,/ });
 const Open = createToken({ name: "Open", pattern: /\[/ });
 const Close = createToken({ name: "Close", pattern: /\]/ });
+const Clear = createToken({ name: "Clear", pattern: /\[[\+\-]\]/ });
 
 const Comment = createToken({
   name: "Comment",
@@ -36,6 +37,7 @@ const allTokens = [
   Decrement,
   Output,
   Input,
+  Clear,
   Open,
   Close,
 ];
@@ -62,6 +64,7 @@ class BrainfuckParser extends CstParser {
         { ALT: () => $.CONSUME(Decrement) },
         { ALT: () => $.CONSUME(Output) },
         { ALT: () => $.CONSUME(Input) },
+        { ALT: () => $.CONSUME(Clear) },
         { ALT: () => $.SUBRULE($.loop) },
       ]);
     });
@@ -126,6 +129,8 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
       return makeInstruction(Opcode.Output, 0);
     } else if (ctx.Input) {
       return makeInstruction(Opcode.Input, 0);
+    } else if (ctx.Clear) {
+      return makeInstruction(Opcode.Clear, 0);
     } else {
       throw new Error("Unhandled command");
     }

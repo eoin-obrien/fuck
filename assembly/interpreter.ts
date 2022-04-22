@@ -3,8 +3,6 @@ import { instructionByteLength, Opcode } from "./bytecode";
 const memorySize: i32 = 30_000;
 
 export function interpret(bytecode: ArrayBuffer, input: string): string {
-  console.time("wasm-interpret");
-
   const instructions = new DataView(bytecode);
   const memory: Uint8Array = new Uint8Array(memorySize);
   let instructionPointer: i32 = 0;
@@ -48,6 +46,9 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
       if (memory[dataPointer] !== 0) {
         instructionPointer -= oparg + instructionByteLength;
       }
+    } else if (opcode === Opcode.Clear) {
+      // Clear the byte at the data pointer
+      memory[dataPointer] = 0;
     } else {
       throw new SyntaxError(`Unknown bytecode op "${opcode}"`);
     }
@@ -56,9 +57,6 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
     instructionPointer += instructionByteLength;
     stepCount++;
   }
-
-  console.log(`Step count: ${stepCount}`);
-  console.timeEnd("wasm-interpret");
 
   return output;
 }
