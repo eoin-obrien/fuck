@@ -14,20 +14,14 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
 
   while (instructionPointer < bytecode.byteLength) {
     const opcode = instructions.getUint8(instructionPointer);
-    const oparg = instructions.getUint32(instructionPointer + 1);
+    const oparg = instructions.getInt32(instructionPointer + 1);
 
-    if (opcode === Opcode.Right) {
-      // Increment the data pointer
+    if (opcode === Opcode.Move) {
+      // Move the data pointer
       dataPointer += oparg;
-    } else if (opcode === Opcode.Left) {
-      // Decrement the data pointer
-      dataPointer -= oparg;
-    } else if (opcode === Opcode.Add) {
+    } else if (opcode === Opcode.Sum) {
       // Increment the byte at the data pointer
-      memory[dataPointer] += <u8>oparg;
-    } else if (opcode === Opcode.Sub) {
-      // Decrement the byte at the data pointer
-      memory[dataPointer] -= <u8>oparg;
+      memory[dataPointer] = u8(memory[dataPointer] + oparg);
     } else if (opcode === Opcode.Output) {
       // Output the byte at the data pointer
       output += String.fromCodePoint(memory[dataPointer]);

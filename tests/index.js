@@ -3,6 +3,22 @@ import { run } from "../index.js";
 
 // Test cases sourced from http://brainfuck.org/
 
+test("cell can store 0-255 inclusive", async (t) => {
+  const output = run(
+    "+".repeat(255) + ".",
+    ""
+  );
+  t.is(output, String.fromCharCode(255));
+});
+
+test("cell wraparound is handled correctly", async (t) => {
+  const output = run(
+    "+".repeat(256) + ".",
+    ""
+  );
+  t.is(output, String.fromCharCode(0));
+});
+
 test("end-of-input is handled correctly", async (t) => {
   const output = run(
     ">,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.",
