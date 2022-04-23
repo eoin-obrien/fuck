@@ -1,25 +1,18 @@
-import { suite, add, cycle, complete, save } from "benny";
-import fs, { opendirSync, readFileSync } from "node:fs";
+import Brainfuck from "brainfuck-node";
+import fs from "node:fs";
+import path from "node:path";
 import { run } from "../index.js";
-import Brainfuck from 'brainfuck-node';
 
 const brainfuckJs = new Brainfuck({ maxSteps: -1 });
 
-const hello = readFileSync("./examples/long.b").toString();
+const exampleDir = "examples";
+const files = fs.readdirSync("examples").map((file) => ({
+  name: file,
+  code: fs.readFileSync(path.join(exampleDir, file)).toString(),
+}));
 
-suite(
-  "Example",
-
-  add("wasm", () => {
-    run(hello, "");
-  }),
-
-  // add("js", () => {
-  //   brainfuckJs.execute(hello, "");
-  // }),
-
-  cycle(),
-  complete(),
-  save({ file: "reduce", version: "1.0.0" }),
-  save({ file: "reduce", format: "chart.html" })
-);
+for (const file of files) {
+  console.time(file.name);
+  run(file.code, "");
+  console.timeEnd(file.name);
+}

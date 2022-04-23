@@ -100,7 +100,7 @@ function parseInput(text) {
   const lexingResult = BrainfuckLexer.tokenize(text);
   // "input" is a setter which will reset the parser's state.
   parser.input = lexingResult.tokens;
-  console.log(parser.program());
+  parser.program();
 
   if (parser.errors.length > 0) {
     throw new Error("Parsing errors detected");
@@ -122,12 +122,6 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
       ...(ctx.command ?? []).map((command) => this.visit(command))
     );
   }
-
-  // TODO handle right/left shift > 255
-  // TODO handle loop offsets > 255
-  // solution: oparg extension like Python?
-  // solution: u16/u32 oparg?
-  // solution: multiple steps? not viable for loops
 
   command(ctx) {
     if (ctx.loop) {
@@ -186,14 +180,15 @@ function toBytecode(inputText) {
 }
 
 export function run(code, input) {
-  console.time("parse");
+  // TODO return execution details
+  // console.time("parse");
   const bytecode = toBytecode(code);
-  console.timeEnd("parse");
-  console.log("Bytecode length:", bytecode.length);
+  // console.timeEnd("parse");
+  // console.log("Bytecode length:", bytecode.length);
 
-  console.time("interpret");
+  // console.time("interpret");
   const result = interpret(bytecode, input);
-  console.timeEnd("interpret");
+  // console.timeEnd("interpret");
   // console.log(result);
 
   return result;
