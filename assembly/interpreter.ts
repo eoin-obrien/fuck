@@ -13,15 +13,29 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
   let output = "";
 
   while (instructionPointer < bytecode.byteLength) {
-    const opcode = instructions.getUint8(instructionPointer);
-    const oparg = instructions.getInt32(instructionPointer + 1);
+    let opcode: u8 = instructions.getUint8(instructionPointer);
+    let oparg: u32 = instructions.getUint8(instructionPointer + 1);
+    let extendedByteLength = 0;
 
-    if (opcode === Opcode.Move) {
-      // Move the data pointer
+    while (opcode === Opcode.ExtendedArg) {
+      instructionPointer += instructionByteLength;
+      extendedByteLength += instructionByteLength;
+      opcode = instructions.getUint8(instructionPointer);
+      oparg = (oparg << 8) | instructions.getUint8(instructionPointer + 1);
+    }
+
+    if (opcode === Opcode.Right) {
+      // Move the data pointer right
       dataPointer += oparg;
-    } else if (opcode === Opcode.Sum) {
+    } else if (opcode === Opcode.Left) {
+      // Move the data pointer left
+      dataPointer -= oparg;
+    } else if (opcode === Opcode.Add) {
       // Increment the byte at the data pointer
       memory[dataPointer] = u8(memory[dataPointer] + oparg);
+    } else if (opcode === Opcode.Sub) {
+      // Decrement the byte at the data pointer
+      memory[dataPointer] = u8(memory[dataPointer] - oparg);
     } else if (opcode === Opcode.Output) {
       // Output the byte at the data pointer
       output += String.fromCodePoint(memory[dataPointer]);
@@ -38,7 +52,8 @@ export function interpret(bytecode: ArrayBuffer, input: string): string {
     } else if (opcode === Opcode.Close) {
       // If the byte at the data pointer is non-zero, move the instruction pointer to the command after the previous "["
       if (memory[dataPointer] !== 0) {
-        instructionPointer -= oparg + instructionByteLength;
+        instructionPointer -=
+          oparg + instructionByteLength + extendedByteLength;
       }
     } else if (opcode === Opcode.Clear) {
       // Clear the byte at the data pointer

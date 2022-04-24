@@ -5,14 +5,23 @@ import { interpret, Opcode } from "./build/release.js";
 const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 const clampUint8 = (num) => clamp(num, 0, 255);
 
-const makeInstruction = (opcode, ...opargs) => {
-  const buffer = new ArrayBuffer(1 + 4 * opargs.length);
-  const view = new DataView(buffer);
-  view.setUint8(0, clampUint8(opcode));
-  for (let i = 0; i < opargs.length; i++) {
-    view.setUint32(1 + 4 * i, opargs[i]);
-  }
-  return new Uint8Array(buffer);
+/**
+ * Creates bytecode instructions for an operation.
+ *
+ * @param {number} opcode
+ * @param {number} oparg
+ * @returns Uint8Array
+ */
+const makeInstruction = (opcode, oparg) => {
+  const instructions = [];
+
+  do {
+    instructions.push(Uint8Array.of(opcode, oparg & 0xff));
+    opcode = Opcode.ExtendedArg;
+    oparg >>= 8;
+  } while (oparg > 0 && opcode !== Opcode.Add && opcode !== Opcode.Sub);
+
+  return concatTypedArray(Uint8Array, ...instructions.reverse());
 };
 
 const Right = createToken({ name: "Right", pattern: />/ });
@@ -131,11 +140,11 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
     } else if (ctx.sum) {
       return this.visit(ctx.sum);
     } else if (ctx.Output) {
-      return makeInstruction(Opcode.Output, 0, 0);
+      return makeInstruction(Opcode.Output, 0);
     } else if (ctx.Input) {
-      return makeInstruction(Opcode.Input, 0, 0);
+      return makeInstruction(Opcode.Input, 0);
     } else if (ctx.Clear) {
-      return makeInstruction(Opcode.Clear, 0, 0);
+      return makeInstruction(Opcode.Clear, 0);
     } else {
       throw new Error("Unhandled command");
     }
@@ -144,19 +153,27 @@ class BrainfuckToBytecodeVisitor extends BaseBrainfuckVisitor {
   move(ctx) {
     const right = ctx.Right?.length || 0;
     const left = ctx.Left?.length || 0;
-    return makeInstruction(Opcode.Move, right - left, 0);
+    const total = right - left;
+    return makeInstruction(
+      total < 0 ? Opcode.Left : Opcode.Right,
+      Math.abs(total)
+    );
   }
 
   sum(ctx) {
     const increment = ctx.Increment?.length || 0;
     const decrement = ctx.Decrement?.length || 0;
-    return makeInstruction(Opcode.Sum, increment - decrement, 0);
+    const total = increment - decrement;
+    return makeInstruction(
+      total < 0 ? Opcode.Sub : Opcode.Add,
+      Math.abs(total)
+    );
   }
 
   loop(ctx) {
     const body = this.visit(ctx.commands);
-    const open = makeInstruction(Opcode.Open, body.length, 0);
-    const close = makeInstruction(Opcode.Close, body.length, 0);
+    const open = makeInstruction(Opcode.Open, body.length);
+    const close = makeInstruction(Opcode.Close, body.length);
     return concatTypedArray(Uint8Array, open, body, close);
   }
 }
@@ -191,5 +208,5 @@ export function run(code, input) {
   // console.timeEnd("interpret");
   // console.log(result);
 
-  return result;
+  return { bytecode, output: result };
 }

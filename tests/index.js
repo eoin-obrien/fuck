@@ -1,46 +1,47 @@
 import test from "ava";
+import fs from "node:fs";
 import { run } from "../index.js";
 
 // Test cases sourced from http://brainfuck.org/
 
+test("hello world", async (t) => {
+  const result = run(fs.readFileSync("examples/hello.b").toString(), "");
+  console.log("Bytecode length:", result.bytecode.byteLength);
+  t.is(result.output, "Hello World!\n");
+});
+
 test("cell can store 0-255 inclusive", async (t) => {
-  const output = run(
-    "+".repeat(255) + ".",
-    ""
-  );
-  t.is(output, String.fromCharCode(255));
+  const result = run("+".repeat(255) + ".", "");
+  t.is(result.output, String.fromCharCode(255));
 });
 
 test("cell wraparound is handled correctly", async (t) => {
-  const output = run(
-    "+".repeat(256) + ".",
-    ""
-  );
-  t.is(output, String.fromCharCode(0));
+  const result = run("+".repeat(256) + ".", "");
+  t.is(result.output, String.fromCharCode(0));
 });
 
 test("end-of-input is handled correctly", async (t) => {
-  const output = run(
+  const result = run(
     ">,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.",
     "\n"
   );
-  t.is(output, "LK\nLK\n");
+  t.is(result.output, "LK\nLK\n");
 });
 
 test("memory is at least 30000 cells long", async (t) => {
-  const output = run(
+  const result = run(
     "++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.",
     ""
   );
-  t.is(output, "#\n");
+  t.is(result.output, "#\n");
 });
 
 test("extraneous characters are ignored", async (t) => {
-  const output = run(
+  const result = run(
     '[]++++++++++[>>+>+>++++++[<<+<+++>>>-]<<<<-]"A*$";?@![#>>+<<]>[>>]<<<<[>++<[-]]>.>.',
     ""
   );
-  t.is(output, "H\n");
+  t.is(result.output, "H\n");
 });
 
 test("unmatched [", async (t) => {
@@ -52,7 +53,7 @@ test("unmatched ]", async (t) => {
 });
 
 test("rot13", async (t) => {
-  const output = run(
+  const result = run(
     `
 ,
 [>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-[>+<-
@@ -75,11 +76,11 @@ test("rot13", async (t) => {
 `,
     "Guvf fubhyq or rapbqrq va ebg13"
   );
-  t.is(output, "This should be encoded in rot13");
+  t.is(result.output, "This should be encoded in rot13");
 });
 
 test("numwarp", async (t) => {
-  const output = run(
+  const result = run(
     `
 >>>>+>+++>+++>>>>>+++[
   >,+>++++[>++++<-]>[<<[-[->]]>[<]>-]<<[
@@ -116,7 +117,7 @@ test("numwarp", async (t) => {
     "420.69"
   );
   t.is(
-    output,
+    result.output,
     "          /\\\n" +
       "          \\/\\\n" +
       "        /    \n" +

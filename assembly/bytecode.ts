@@ -1,8 +1,11 @@
-export const instructionByteLength = 9;
+export const instructionByteLength = 2;
 
 export enum Opcode {
-  Move,
-  Sum,
+  ExtendedArg,
+  Left,
+  Right,
+  Add,
+  Sub,
   Output,
   Input,
   Open,
