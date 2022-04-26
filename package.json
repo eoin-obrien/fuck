@@ -1,0 +1,58 @@
+{
+  "name": "brainfuck",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Eoin O'Brien",
+  "main": "dist/index.js",
+  "module": "dist/brainfuck.esm.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "analyze": "size-limit --why",
+    "build": "dts build",
+    "lint": "dts lint",
+    "prepare": "dts build",
+    "size": "size-limit",
+    "start": "dts watch",
+    "test": "dts test"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "dts lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "engines": {
+    "node": ">=12"
+  },
+  "size-limit": [
+    {
+      "path": "dist/brainfuck.cjs.production.min.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/brainfuck.esm.js",
+      "limit": "10 KB"
+    }
+  ],
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "7.0.8",
+    "@tsconfig/recommended": "1.0.1",
+    "dts-cli": "1.5.1",
+    "husky": "7.0.4",
+    "size-limit": "7.0.8",
+    "tslib": "2.4.0",
+    "typescript": "4.6.3"
+  }
+}
