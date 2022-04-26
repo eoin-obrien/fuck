@@ -1,4 +1,4 @@
-import { createToken, CstParser, Lexer, Rule } from 'chevrotain';
+import { createToken, CstNode, CstParser, Lexer, Rule } from 'chevrotain';
 
 const LAngle = createToken({ name: 'LAngle', pattern: /</ });
 const RAngle = createToken({ name: 'RAngle', pattern: />/ });
@@ -69,17 +69,22 @@ const parser = new BrainfuckParser();
 
 export const productions: Record<string, Rule> = parser.getGAstProductions();
 
-export function parseBrainfuck(text: string) {
+export const BaseBrainfuckVisitor = parser.getBaseCstVisitorConstructor();
+
+export function parseBrainfuck(text: string): CstNode {
   const lexResult = BrainfuckLexer.tokenize(text);
+  if (lexResult.errors.length) {
+    throw lexResult.errors[0];
+  }
+
   // Setting a new input will RESET the parser instance's state.
   parser.input = lexResult.tokens;
   const cst = parser.brainfuck();
+  if (parser.errors.length) {
+    throw parser.errors[0];
+  }
 
-  return {
-    // This is a pure grammar, the value will be undefined until we add embedded actions
-    // or enable automatic CST creation.
-    cst: cst,
-    lexErrors: lexResult.errors,
-    parseErrors: parser.errors,
-  };
+  // This is a pure grammar, the value will be undefined until we add embedded actions
+  // or enable automatic CST creation.
+  return cst;
 }
