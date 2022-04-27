@@ -1,5 +1,5 @@
 import { MismatchedTokenException, NotAllInputParsedException } from 'chevrotain';
-import { BrainfuckProgram } from '../src';
+import { BrainfuckProgram, EOFBehavior } from '../src';
 
 // Test cases sourced from http://brainfuck.org/tests.b
 
@@ -8,26 +8,42 @@ describe('compileBrainfuck', () => {
     const program = new BrainfuckProgram(
       '++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.'
     );
-    expect(program.execute()).toBe('Hello World!\n');
+    expect(program.execute().output).toBe('Hello World!\n');
   });
 
-  test('i/o', () => {
-    const program = new BrainfuckProgram('>,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.');
-    expect(program.execute('\n')).toBe('LK\nLK\n');
+  test('EOF -> no change', () => {
+    const program = new BrainfuckProgram('>,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.', {
+      eofBehavior: EOFBehavior.NoChange,
+    });
+    expect(program.execute('\n').output).toBe('LK\nLK\n');
+  });
+
+  test('EOF -> set 0', () => {
+    const program = new BrainfuckProgram('>,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.', {
+      eofBehavior: EOFBehavior.SetZero,
+    });
+    expect(program.execute('\n').output).toBe('LB\nLB\n');
+  });
+
+  test('EOF -> set 255', () => {
+    const program = new BrainfuckProgram('>,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.', {
+      eofBehavior: EOFBehavior.SetAllBits,
+    });
+    expect(program.execute('\n').output).toBe('LA\nLA\n');
   });
 
   test('memory size', () => {
     const program = new BrainfuckProgram(
       '++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.'
     );
-    expect(program.execute('\n')).toBe('#\n');
+    expect(program.execute('\n').output).toBe('#\n');
   });
 
   test('obscure issues', () => {
     const program = new BrainfuckProgram(
       '[]++++++++++[>>+>+>++++++[<<+<+++>>>-]<<<<-]"A*$";?@![#>>+<<]>[>>]<<<<[>++<[-]]>.>.'
     );
-    expect(program.execute('\n')).toBe('H\n');
+    expect(program.execute('\n').output).toBe('H\n');
   });
 
   test('rot13', () => {
@@ -51,7 +67,7 @@ describe('compileBrainfuck', () => {
       [>+<-]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
       ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]>.[-]<,]
     `);
-    expect(program.execute('~mlk zyx')).toBe('~zyx mlk');
+    expect(program.execute('~mlk zyx').output).toBe('~zyx mlk');
   });
 
   test('unmatched left square bracket', () => {
