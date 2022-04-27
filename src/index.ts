@@ -40,25 +40,6 @@ export class BrainfuckProgram {
     this.wasmModule = compileBrainfuck(this.cst);
   }
 
-  protected get eof(): number {
-    switch (this.options.eofBehavior) {
-      case EOFBehavior.SetAllBits:
-        return 255;
-      case EOFBehavior.SetZero:
-        return 0;
-      default:
-        return -1;
-    }
-  }
-
-  protected output(byte: number): void {
-    this.outputBuffer.push(byte);
-  }
-
-  protected input(): number {
-    return this.inputBuffer.shift() ?? this.eof;
-  }
-
   execute(input: string = ''): BrainfuckExecution {
     // Reset i/o buffers
     this.outputBuffer = [];
@@ -83,5 +64,24 @@ export class BrainfuckProgram {
       dataPointer,
       output: String.fromCharCode(...this.outputBuffer),
     };
+  }
+
+  protected get eof(): number {
+    switch (this.options.eofBehavior) {
+      case EOFBehavior.SetAllBits:
+        return 255;
+      case EOFBehavior.SetZero:
+        return 0;
+      default:
+        return -1;
+    }
+  }
+
+  protected output(byte: number): void {
+    this.outputBuffer.push(byte);
+  }
+
+  protected input(): number {
+    return this.inputBuffer.shift() ?? this.eof;
   }
 }

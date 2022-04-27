@@ -13,48 +13,6 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
     this.validateVisitor();
   }
 
-  private get memorySize() {
-    return this.module.global.get('memorySize', binaryen.i32);
-  }
-
-  private get dataPointer() {
-    return this.module.global.get('dataPointer', binaryen.i32);
-  }
-
-  private get dataValue() {
-    return this.module.i32.load8_u(0, 0, this.dataPointer);
-  }
-
-  private addToDataPointer(value: number) {
-    // TODO wrap pointer at boundaries
-    const result = this.module.i32.rem_u(
-      this.module.i32.add(this.dataPointer, this.module.i32.const(value)),
-      this.memorySize
-    );
-    return this.module.global.set('dataPointer', result);
-  }
-
-  private addToDataValue(value: number) {
-    const result = this.module.i32.add(this.dataValue, this.module.i32.const(value));
-    return this.module.i32.store8(0, 0, this.dataPointer, result);
-  }
-
-  private write() {
-    return this.module.call('output', [this.dataValue], binaryen.none);
-  }
-
-  private read() {
-    return this.module.block(null, [
-      // Temporarily store input in global variable
-      this.module.global.set('inputBuffer', this.module.call('input', [], binaryen.i32)),
-      // Handle EOF conditions by writing the input to memory if and only if it's greater than zero
-      this.module.if(
-        this.module.i32.ge_s(this.module.global.get('inputBuffer', binaryen.i32), this.module.i32.const(0)),
-        this.module.i32.store8(0, 0, this.dataPointer, this.module.global.get('inputBuffer', binaryen.i32))
-      ),
-    ]);
-  }
-
   compile(cst: CstNode): WebAssembly.Module {
     this.module.setMemory(1, 1, 'memory');
 
@@ -68,13 +26,10 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
     this.module.addFunctionImport('input', 'imports', 'input', binaryen.none, binaryen.i32);
 
     // Main program body
-    this.module.addFunction(
-      'execute',
-      binaryen.none,
-      binaryen.i32,
-      [binaryen.i32],
-      this.module.block(null, [...this.visit(cst), this.module.return(this.dataPointer)])
-    );
+    const body = this.module.block(null, [...this.visit(cst), this.module.return(this.dataPointer)]);
+
+    // Export program in execute() function
+    this.module.addFunction('execute', binaryen.none, binaryen.i32, [binaryen.i32], body);
     this.module.addFunctionExport('execute', 'execute');
 
     // Optimize the module using default passes and levels
@@ -123,14 +78,54 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
     } else if (ctx.Minus) {
       return this.addToDataValue(-1);
     } else if (ctx.Period) {
-      // TODO create output block in memory
       return this.write();
     } else if (ctx.Comma) {
-      // TODO create input block in memory
       return this.read();
     } else {
       throw new Error('Unknown command');
     }
+  }
+
+  private get memorySize() {
+    return this.module.global.get('memorySize', binaryen.i32);
+  }
+
+  private get dataPointer() {
+    return this.module.global.get('dataPointer', binaryen.i32);
+  }
+
+  private get dataValue() {
+    return this.module.i32.load8_u(0, 0, this.dataPointer);
+  }
+
+  private addToDataPointer(value: number) {
+    // Wrap pointer at boundaries
+    const result = this.module.i32.rem_u(
+      this.module.i32.add(this.dataPointer, this.module.i32.const(value)),
+      this.memorySize
+    );
+    return this.module.global.set('dataPointer', result);
+  }
+
+  private addToDataValue(value: number) {
+    const result = this.module.i32.add(this.dataValue, this.module.i32.const(value));
+    return this.module.i32.store8(0, 0, this.dataPointer, result);
+  }
+
+  private write() {
+    return this.module.call('output', [this.dataValue], binaryen.none);
+  }
+
+  private read() {
+    return this.module.block(null, [
+      // Temporarily store input in global variable
+      this.module.global.set('inputBuffer', this.module.call('input', [], binaryen.i32)),
+      // Handle EOF conditions by writing the input to memory if and only if it's greater than zero
+      this.module.if(
+        this.module.i32.ge_s(this.module.global.get('inputBuffer', binaryen.i32), this.module.i32.const(0)),
+        this.module.i32.store8(0, 0, this.dataPointer, this.module.global.get('inputBuffer', binaryen.i32))
+      ),
+    ]);
   }
 }
 
