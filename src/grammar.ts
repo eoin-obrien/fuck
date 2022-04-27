@@ -14,17 +14,7 @@ const Comment = createToken({
   group: Lexer.SKIPPED,
 });
 
-const allTokens = [
-  LAngle,
-  RAngle,
-  Plus,
-  Minus,
-  Period,
-  Comma,
-  LSquare,
-  RSquare,
-  Comment,
-];
+const allTokens = [LAngle, RAngle, Plus, Minus, Period, Comma, LSquare, RSquare, Comment];
 const BrainfuckLexer = new Lexer(allTokens);
 
 class BrainfuckParser extends CstParser {
@@ -69,7 +59,7 @@ const parser = new BrainfuckParser();
 
 export const productions: Record<string, Rule> = parser.getGAstProductions();
 
-export const BaseBrainfuckVisitor = parser.getBaseCstVisitorConstructor();
+export const getBaseCstVisitorConstructor = () => parser.getBaseCstVisitorConstructor();
 
 export function parseBrainfuck(text: string): CstNode {
   const lexResult = BrainfuckLexer.tokenize(text);

@@ -1,20 +1,11 @@
 import type { CstNode, IToken } from 'chevrotain';
-import type {
-  BrainfuckCstChildren,
-  CommandCstChildren,
-  CommandCstNode,
-  ICstNodeVisitor,
-  LoopCstChildren,
-} from './cst';
-import { BaseBrainfuckVisitor } from './grammar';
+import type { BrainfuckCstChildren, CommandCstChildren, CommandCstNode, LoopCstChildren } from './cst';
+import { getBaseCstVisitorConstructor } from './grammar';
 
 /**
  * The printer visitor reconstructs Brainfuck source code from a CST.
  */
-class BrainfuckPrinter
-  extends BaseBrainfuckVisitor
-  implements ICstNodeVisitor<undefined, string>
-{
+class BrainfuckPrinter extends getBaseCstVisitorConstructor() {
   constructor() {
     super();
     // The "validateVisitor" method is a helper utility which performs static analysis

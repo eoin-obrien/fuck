@@ -17,7 +17,7 @@
     "prepare": "dts build",
     "size": "size-limit",
     "start": "dts watch",
-    "test": "dts test",
+    "test": "NODE_OPTIONS=--experimental-vm-modules dts test",
     "codegen": "ts-node scripts/gen-dts-signatures"
   },
   "husky": {
@@ -26,13 +26,21 @@
     }
   },
   "prettier": {
-    "printWidth": 80,
+    "printWidth": 120,
     "semi": true,
     "singleQuote": true,
     "trailingComma": "es5"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    }
   },
   "engines": {
     "node": ">=12"
