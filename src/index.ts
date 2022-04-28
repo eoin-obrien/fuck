@@ -31,8 +31,8 @@ export class BrainfuckProgram {
     eofBehavior: EOFBehavior.NoChange,
   };
 
-  protected outputBuffer: number[] = [];
-  protected inputBuffer: number[] = [];
+  protected outputBuffer: string[] = [];
+  protected inputBuffer: string[] = [];
 
   constructor(private readonly code: string, options?: Partial<BrainfuckOptions>) {
     this.options = { ...this.options, ...options };
@@ -43,7 +43,7 @@ export class BrainfuckProgram {
   execute(input: string = ''): BrainfuckExecution {
     // Reset i/o buffers
     this.outputBuffer = [];
-    this.inputBuffer = input.split('').map((char) => char.charCodeAt(0));
+    this.inputBuffer = input.split('');
 
     // Instantiate wasm module
     const instance = new WebAssembly.Instance(this.wasmModule, {
@@ -62,7 +62,7 @@ export class BrainfuckProgram {
     return {
       memory: new Uint8Array(memory.buffer, 0, this.options.memorySize),
       dataPointer,
-      output: String.fromCharCode(...this.outputBuffer),
+      output: this.outputBuffer.join(''),
     };
   }
 
@@ -78,10 +78,10 @@ export class BrainfuckProgram {
   }
 
   protected output(byte: number): void {
-    this.outputBuffer.push(byte);
+    this.outputBuffer.push(String.fromCharCode(byte));
   }
 
   protected input(): number {
-    return this.inputBuffer.shift() ?? this.eof;
+    return this.inputBuffer.shift()?.charCodeAt(0) ?? this.eof;
   }
 }

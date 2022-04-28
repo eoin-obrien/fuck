@@ -14,6 +14,7 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
   }
 
   compile(cst: CstNode): WebAssembly.Module {
+    // TODO Handle increased memory sizes
     this.module.setMemory(1, 1, 'memory');
 
     // Globals
@@ -34,6 +35,7 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
 
     // Optimize the module using default passes and levels
     this.module.optimize();
+    // this.module.runPasses(['asyncify']);
 
     // Validate the module
     if (!this.module.validate()) throw new Error('validation error');
@@ -99,6 +101,7 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
   }
 
   private addToDataPointer(value: number) {
+    // TODO Support different memory modes (wrap vs extend)
     // Wrap pointer at boundaries
     const result = this.module.i32.rem_u(
       this.module.i32.add(this.dataPointer, this.module.i32.const(value)),

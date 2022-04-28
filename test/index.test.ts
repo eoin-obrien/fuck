@@ -36,14 +36,14 @@ describe('compileBrainfuck', () => {
     const program = new BrainfuckProgram(
       '++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>]+++++[>+++++++<<++>-]>.<<.'
     );
-    expect(program.execute('\n').output).toBe('#\n');
+    expect(program.execute().output).toBe('#\n');
   });
 
   test('obscure issues', () => {
     const program = new BrainfuckProgram(
       '[]++++++++++[>>+>+>++++++[<<+<+++>>>-]<<<<-]"A*$";?@![#>>+<<]>[>>]<<<<[>++<[-]]>.>.'
     );
-    expect(program.execute('\n').output).toBe('H\n');
+    expect(program.execute().output).toBe('H\n');
   });
 
   test('rot13', () => {
