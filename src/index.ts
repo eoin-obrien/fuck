@@ -1,6 +1,7 @@
 import binaryen from 'binaryen';
 import { BrainfuckCompiler, BrainfuckCompilerOptions } from './compiler';
 import { parseBrainfuck } from './grammar';
+import { fromCharCodes, toCharCodes } from './utils';
 
 export interface BrainfuckExecution {
   memory: Uint8Array;
@@ -8,12 +9,12 @@ export interface BrainfuckExecution {
   output: string;
 }
 
-export class BrainfuckProgram {
+export class Brainfuck {
   protected readonly compiler: BrainfuckCompiler;
   protected readonly wasmModule: WebAssembly.Module;
 
-  protected outputBuffer: string[] = [];
-  protected inputBuffer: string[] = [];
+  protected outputBuffer: number[] = [];
+  protected inputBuffer: number[] = [];
 
   constructor(private readonly code: string, options?: Partial<BrainfuckCompilerOptions>) {
     this.compiler = new BrainfuckCompiler(new binaryen.Module(), options);
@@ -23,7 +24,7 @@ export class BrainfuckProgram {
   execute(input: string = ''): BrainfuckExecution {
     // Reset i/o buffers
     this.outputBuffer = [];
-    this.inputBuffer = input.split('');
+    this.inputBuffer = toCharCodes(input);
 
     // Instantiate wasm module
     const instance = new WebAssembly.Instance(this.wasmModule, {
@@ -40,15 +41,15 @@ export class BrainfuckProgram {
     return {
       memory: new Uint8Array(memory.buffer, 0, this.compiler.memorySize),
       dataPointer,
-      output: this.outputBuffer.join(''),
+      output: fromCharCodes(this.outputBuffer),
     };
   }
 
   protected output(byte: number): void {
-    this.outputBuffer.push(String.fromCharCode(byte));
+    this.outputBuffer.push(byte);
   }
 
   protected input(): number {
-    return this.inputBuffer.shift()?.charCodeAt(0) ?? -1;
+    return this.inputBuffer.shift() ?? -1;
   }
 }
