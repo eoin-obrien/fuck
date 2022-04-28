@@ -1,4 +1,3 @@
-import { MismatchedTokenException, NotAllInputParsedException } from 'chevrotain';
 import { Brainfuck } from '../src';
 import { EOFBehavior } from '../src/compiler';
 
@@ -69,13 +68,5 @@ describe('Brainfuck', () => {
       ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]>.[-]<,]
     `);
     expect(program.execute('~mlk zyx').output).toBe('~zyx mlk');
-  });
-
-  test('unmatched left square bracket', () => {
-    expect(() => new Brainfuck('+++++[>+++++++>++<<-]>.>.[')).toThrow(MismatchedTokenException);
-  });
-
-  test('unmatched right square bracket', () => {
-    expect(() => new Brainfuck('+++++[>+++++++>++<<-]>.>.][')).toThrow(NotAllInputParsedException);
   });
 });
