@@ -5,20 +5,41 @@ import { getBaseCstVisitorConstructor } from './grammar';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
 
-class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNodeVisitor<BinaryenModule, any> {
-  constructor(private readonly module: BinaryenModule) {
+export enum EOFBehavior {
+  /** Leave memory cell at pointer unchanged. */
+  NoChange,
+  /** Sets byte at pointer to `0x00`. */
+  SetZero,
+  /** Sets byte at pointer to `0xff`. */
+  SetAllBits,
+}
+
+export interface BrainfuckCompilerOptions {
+  memorySize: number;
+  eofBehavior: EOFBehavior;
+}
+
+export class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNodeVisitor<BinaryenModule, any> {
+  public readonly memorySize: number;
+  public readonly eofBehaviour: EOFBehavior;
+
+  constructor(private readonly module: BinaryenModule, options?: Partial<BrainfuckCompilerOptions>) {
     super();
     // The "validateVisitor" method is a helper utility which performs static analysis
     // to detect missing or redundant visitor methods
     this.validateVisitor();
+
+    this.memorySize = options?.memorySize ?? 30000;
+    this.eofBehaviour = options?.eofBehavior ?? EOFBehavior.NoChange;
   }
 
   compile(cst: CstNode): WebAssembly.Module {
-    // TODO Handle increased memory sizes
-    this.module.setMemory(1, 1, 'memory');
+    // Allocate sufficient memory
+    const pageSize = 65536;
+    const pages = Math.ceil(this.memorySize / pageSize);
+    this.module.setMemory(pages, pages, 'memory');
 
     // Globals
-    this.module.addGlobalImport('memorySize', 'imports', 'memorySize', binaryen.i32);
     this.module.addGlobal('dataPointer', binaryen.i32, true, this.module.i32.const(0));
     this.module.addGlobal('inputBuffer', binaryen.i32, true, this.module.i32.const(0));
 
@@ -88,10 +109,6 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
     }
   }
 
-  private get memorySize() {
-    return this.module.global.get('memorySize', binaryen.i32);
-  }
-
   private get dataPointer() {
     return this.module.global.get('dataPointer', binaryen.i32);
   }
@@ -105,7 +122,7 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
     // Wrap pointer at boundaries
     const result = this.module.i32.rem_u(
       this.module.i32.add(this.dataPointer, this.module.i32.const(value)),
-      this.memorySize
+      this.module.i32.const(this.memorySize)
     );
     return this.module.global.set('dataPointer', result);
   }
@@ -120,19 +137,27 @@ class BrainfuckCompiler extends getBaseCstVisitorConstructor() implements ICstNo
   }
 
   private read() {
+    const inputBuffer = this.module.global.get('inputBuffer', binaryen.i32);
     return this.module.block(null, [
-      // Temporarily store input in global variable
+      // Temporarily store input in global variable for comparison
       this.module.global.set('inputBuffer', this.module.call('input', [], binaryen.i32)),
-      // Handle EOF conditions by writing the input to memory if and only if it's greater than zero
+      // Write input to memory and handle EOF conditions
       this.module.if(
-        this.module.i32.ge_s(this.module.global.get('inputBuffer', binaryen.i32), this.module.i32.const(0)),
-        this.module.i32.store8(0, 0, this.dataPointer, this.module.global.get('inputBuffer', binaryen.i32))
+        this.module.i32.ge_s(inputBuffer, this.module.i32.const(0)),
+        this.module.i32.store8(0, 0, this.dataPointer, inputBuffer),
+        this.handleEOF()
       ),
     ]);
   }
-}
 
-export function compileBrainfuck(cst: CstNode) {
-  const compiler = new BrainfuckCompiler(new binaryen.Module());
-  return compiler.compile(cst);
+  private handleEOF() {
+    switch (this.eofBehaviour) {
+      case EOFBehavior.SetZero:
+        return this.module.i32.store8(0, 0, this.dataPointer, this.module.i32.const(0));
+      case EOFBehavior.SetAllBits:
+        return this.module.i32.store8(0, 0, this.dataPointer, this.module.i32.const(255));
+      default:
+        return this.module.nop();
+    }
+  }
 }

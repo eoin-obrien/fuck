@@ -1,5 +1,6 @@
 import { MismatchedTokenException, NotAllInputParsedException } from 'chevrotain';
-import { BrainfuckProgram, EOFBehavior } from '../src';
+import { BrainfuckProgram } from '../src';
+import { EOFBehavior } from '../src/compiler';
 
 // Test cases sourced from http://brainfuck.org/tests.b
 
