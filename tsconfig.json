@@ -2,7 +2,9 @@
   "extends": "@tsconfig/node16-strictest/tsconfig.json",
   "include": ["src", "types"],
   "compilerOptions": {
-    "lib": ["dom"],
-    "moduleResolution": "node"
+    "lib": ["DOM"],
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Node"
   }
 }

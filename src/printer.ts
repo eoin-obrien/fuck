@@ -1,5 +1,5 @@
 import type { CstNode, IToken } from 'chevrotain';
-import type { BrainfuckCstChildren, CommandCstChildren, CommandCstNode, LoopCstChildren } from './cst';
+import type { BrainfuckCstChildren, CommandCstChildren, CommandCstNode, LoopCstChildren } from '../types/cst';
 import { getBaseCstVisitorConstructor } from './grammar';
 
 /**

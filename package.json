@@ -18,7 +18,7 @@
     "size": "size-limit",
     "start": "dts watch",
     "test": "NODE_OPTIONS=--experimental-vm-modules dts test",
-    "codegen": "ts-node scripts/gen-dts-signatures"
+    "codegen": "ts-node --compilerOptions='{\"module\": \"CommonJS\"}' scripts/gen-dts-signatures"
   },
   "husky": {
     "hooks": {

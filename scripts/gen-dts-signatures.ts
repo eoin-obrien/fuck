@@ -4,5 +4,5 @@ import { resolve } from 'path';
 import { productions } from '../src/grammar';
 
 const dtsString = generateCstDts(productions);
-const dtsPath = resolve(__dirname, '..', 'src', 'cst.d.ts');
+const dtsPath = resolve(__dirname, '..', 'types', 'cst.d.ts');
 writeFileSync(dtsPath, dtsString);

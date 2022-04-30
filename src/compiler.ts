@@ -1,6 +1,6 @@
 import binaryen from 'binaryen';
 import type { CstNode } from 'chevrotain';
-import type { BrainfuckCstChildren, CommandCstChildren, ICstNodeVisitor, LoopCstChildren } from './cst';
+import type { BrainfuckCstChildren, CommandCstChildren, ICstNodeVisitor, LoopCstChildren } from '../types/cst';
 import { getBaseCstVisitorConstructor } from './grammar';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
