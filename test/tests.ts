@@ -12,6 +12,14 @@ test('executes hello.b', t => {
 	t.is(program.execute().output, 'Hello World!\n');
 });
 
+test('executes complex hello.b', t => {
+	const program = new Brainfuck(`
+		>++++++++[-<+++++++++>]<.>>+>-[+]++>++>+++[>[->+++<<+++>]<<]>-----.>->
+    +++..+++.>-.<<+[>[+>+]>>]<--------------.>>.+++.------.--------.>+.>+.
+	`);
+	t.is(program.execute().output, 'Hello World!\n');
+});
+
 test('can handle EOF as a no-op', t => {
 	const program = new Brainfuck('>,>+++++++++,>+++++++++++[<++++++<++++++<+>>>-]<<.>.<<-.>.>.<<.', {
 		eofBehavior: EofBehavior.NoChange,

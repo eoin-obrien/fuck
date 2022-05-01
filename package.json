@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "del dist && tsc",
-    "test": "xo && ava",
+    "test": "xo && ava --node-arguments=\"--no-warnings\"",
     "prepare": "npm run build",
     "codegen": "ts-node-esm scripts/gen-dts-signatures"
   },

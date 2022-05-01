@@ -2,6 +2,8 @@ import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-defau
 import {BrainfuckCompiler, BrainfuckCompilerOptions} from './compiler.js';
 import {parseBrainfuck} from './grammar.js';
 
+export {EofBehavior} from './compiler.js';
+
 export interface ExecutionResult {
 	memory: Uint8Array;
 	dataPointer: number;
