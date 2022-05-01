@@ -3,7 +3,7 @@
 Do you want to write blazing-fast WebAssembly code in a practially useless esoteric programming language?
 Do you enjoy overcomplicating everything for bragging rights?
 Are you a connoisseur of profanity-laden tech?
-If any of those are true, then `fuck` is the Brainfuck-to-WebAssembly compiler for you!
+If any of those are true, then `wasm-brainfuck` is the Brainfuck-to-WebAssembly compiler for you!
 
 ## Usage
 
@@ -12,7 +12,7 @@ $ npm install fuck
 ```
 
 ```javascript
-import { Brainfuck } from "fuck";
+import { Brainfuck } from "wasm-brainfuck";
 
 const program = new Brainfuck(`
 		++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]
@@ -44,7 +44,7 @@ All characters other than `><+-.,[]` are considered comments and are ignored.
 
 ## Customization
 
-`fuck` uses 30,000 memory cells by default, but this can be customized at compile time.
+`wasm-brainfuck` uses 30,000 memory cells by default, but this can be customized at compile time.
 When the data pointer is moved out of range, it wraps back around to the other side of the array.
 
 ```javascript
@@ -53,10 +53,10 @@ const program = new Brainfuck("+.>+.", { memorySize: 100_000 });
 
 End-of-file conditions aren't handled consistently in Brainfuck implementations.
 By default, EOF input is a no-op, leaving the memory cell unchanged.
-For flexibility, `fuck` allows EOF behavior to be set at compile time to map EOF to `0` or `255`.
+For flexibility, `wasm-brainfuck` allows EOF behavior to be set at compile time to map EOF to `0` or `255`.
 
 ```javascript
-import { EofBehavior } from "fuck";
+import { EofBehavior } from "wasm-brainfuck";
 const program = new Brainfuck("+.>+.", { eofBehavior: EofBehavior.SetZero });
 ```
 
