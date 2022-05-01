@@ -28,11 +28,6 @@
     "prepare": "npm run build",
     "codegen": "ts-node-esm scripts/gen-dts-signatures"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm test"
-    }
-  },
   "ava": {
     "extensions": {
       "ts": "module"
@@ -50,7 +45,6 @@
     "@types/node": "^16.0.30",
     "ava": "^4.2.0",
     "del-cli": "^4.0.1",
-    "husky": "^7.0.4",
     "ts-node": "^10.7.0",
     "tslib": "^2.4.0",
     "typescript": "^4.6.3",
