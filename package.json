@@ -1,73 +1,63 @@
 {
-  "name": "brainfuck",
+  "name": "fuck",
   "version": "0.1.0",
+  "description": "Blazing-fast Brainfuck compiler for WebAssembly",
   "license": "MIT",
-  "author": "Eoin O'Brien",
+  "repository": "eoin-obrien/fuck",
+  "author": {
+    "name": "Eoin O'Brien",
+    "email": "eoin@tracworx.ai",
+    "url": "https://eoin.ai"
+  },
+  "type": "module",
   "main": "dist/index.js",
-  "module": "dist/brainfuck.esm.js",
-  "typings": "dist/index.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "src"
+    "dist"
+  ],
+  "keywords": [
+    "brainfuck",
+    "webassemably",
+    "wasm",
+    "compiler",
+    "esolang"
   ],
   "scripts": {
-    "analyze": "size-limit --why",
-    "build": "dts build",
-    "lint": "dts lint",
-    "prepare": "dts build",
-    "size": "size-limit",
-    "start": "dts watch",
-    "test": "NODE_OPTIONS=--experimental-vm-modules dts test",
-    "codegen": "ts-node --compilerOptions='{\"module\": \"CommonJS\"}' scripts/gen-dts-signatures"
+    "build": "del dist && tsc",
+    "test": "xo && ava",
+    "prepare": "npm run build",
+    "codegen": "ts-node-esm scripts/gen-dts-signatures"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "dts lint"
+      "pre-commit": "npm test"
     }
   },
-  "prettier": {
-    "printWidth": 120,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [
-      ".ts"
-    ],
-    "globals": {
-      "ts-jest": {
-        "useESM": true
-      }
-    }
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--loader=ts-node/esm"
+    ]
   },
   "engines": {
     "node": ">=12"
   },
-  "size-limit": [
-    {
-      "path": "dist/brainfuck.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/brainfuck.esm.js",
-      "limit": "10 KB"
-    }
-  ],
   "devDependencies": {
-    "@size-limit/preset-small-lib": "7.0.8",
-    "@tsconfig/node16-strictest": "1.0.1",
-    "@tsconfig/recommended": "1.0.1",
-    "dts-cli": "1.5.1",
-    "husky": "7.0.4",
-    "size-limit": "7.0.8",
-    "ts-node": "10.7.0",
-    "tslib": "2.4.0",
-    "typescript": "4.6.3"
+    "@sindresorhus/tsconfig": "^2.0.0",
+    "@size-limit/preset-small-lib": "^7.0.8",
+    "@types/node": "^16.0.30",
+    "ava": "^4.2.0",
+    "del-cli": "^4.0.1",
+    "husky": "^7.0.4",
+    "ts-node": "^10.7.0",
+    "tslib": "^2.4.0",
+    "typescript": "^4.6.3",
+    "xo": "^0.48.0"
   },
   "dependencies": {
-    "binaryen": "106.0.0",
-    "chevrotain": "10.1.2"
+    "binaryen": "^106.0.0",
+    "chevrotain": "^10.1.2"
   }
 }
