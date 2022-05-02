@@ -2,6 +2,7 @@ import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-defau
 import type {CstNode} from 'chevrotain';
 import type {AddCstChildren, BrainfuckCstChildren, CommandCstChildren, LeftCstChildren, LoopCstChildren, RightCstChildren, SubCstChildren} from '../types/@generated/cst';
 import {parser} from './grammar.js';
+import {getMultiplicationLoopFactors, isMultiplicationLoop} from './loop.js';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
 
@@ -91,9 +92,16 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 	}
 
 	loop(ctx: LoopCstChildren) {
-		// Optimize clear loops
-		if (this.isClearLoop(ctx)) {
-			return this.setDataValue(this.wasm.i32.const(0));
+		// Optimize multiplication loops
+		if (isMultiplicationLoop(ctx)) {
+			// Statically compute factors
+			const factors = [...getMultiplicationLoopFactors(ctx).entries()];
+			// Multiply and copy to offset
+			const multiplications = factors.map(([offset, factor]) => this.multiply(offset, factor));
+			// Clear original cell
+			const clear = this.setDataValue(this.wasm.i32.const(0));
+			// Wrap operations in block to return a single node
+			return this.wasm.block(null, [...multiplications, clear]);
 		}
 
 		// Labels for branching
@@ -155,12 +163,16 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 		return this.wasm.i32.load8_u(0, 0, this.dataPointer);
 	}
 
-	private addToDataPointer(value: number) {
-		// Wrap pointer at boundaries
-		const result = this.wasm.i32.rem_u(
-			this.wasm.i32.add(this.dataPointer, this.wasm.i32.const(value)),
+	private offsetDataPointer(offset: number) {
+		return this.wasm.i32.rem_u(
+			this.wasm.i32.add(this.dataPointer, this.wasm.i32.const(offset)),
 			this.wasm.i32.const(this.memorySize),
 		);
+	}
+
+	private addToDataPointer(value: number) {
+		// Wrap pointer at boundaries
+		const result = this.offsetDataPointer(value);
 		return this.wasm.global.set('dataPointer', result);
 	}
 
@@ -171,6 +183,15 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 
 	private setDataValue(value: number) {
 		return this.wasm.i32.store8(0, 0, this.dataPointer, value);
+	}
+
+	private multiply(offset: number, factor: number) {
+		// Multiply value at data pointer by factor
+		const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
+		// Add product to value at offset
+		const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
+		// Store result at offset
+		return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
 	}
 
 	private write() {
@@ -200,18 +221,5 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 			default:
 				return this.wasm.nop();
 		}
-	}
-
-	private isClearLoop(ctx: LoopCstChildren): boolean {
-		if (ctx.command?.length !== 1 || !ctx.command[0]) {
-			return false;
-		}
-
-		const {sub} = ctx.command[0].children;
-		if (!sub?.[0] || sub[0].children.Minus.length !== -1) {
-			return false;
-		}
-
-		return true;
 	}
 }
