@@ -26,6 +26,7 @@
     "build": "del dist && tsc",
     "test": "xo && ava --node-arguments=\"--no-warnings\"",
     "prepare": "npm run build",
+    "benchmark": "npm run build && node ./benchmarks/benchmark.js",
     "codegen": "ts-node-esm scripts/gen-dts-signatures"
   },
   "ava": {
@@ -40,6 +41,7 @@
     "node": ">=12"
   },
   "devDependencies": {
+    "@jonahsnider/benchmark": "5.0.0",
     "@sindresorhus/tsconfig": "^2.0.0",
     "@types/node": "^16.0.30",
     "ava": "^4.2.0",
