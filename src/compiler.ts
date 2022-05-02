@@ -91,6 +91,11 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 	}
 
 	loop(ctx: LoopCstChildren) {
+		// Optimize clear loops
+		if (this.isClearLoop(ctx)) {
+			return this.setDataValue(this.wasm.i32.const(0));
+		}
+
 		// Labels for branching
 		const breakLabel = `break:${ctx.LSquare[0]!.startOffset}`;
 		const continueLabel = `continue:${ctx.LSquare[0]!.startOffset}`;
@@ -161,7 +166,11 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 
 	private addToDataValue(value: number) {
 		const result = this.wasm.i32.add(this.dataValue, this.wasm.i32.const(value));
-		return this.wasm.i32.store8(0, 0, this.dataPointer, result);
+		return this.setDataValue(result);
+	}
+
+	private setDataValue(value: number) {
+		return this.wasm.i32.store8(0, 0, this.dataPointer, value);
 	}
 
 	private write() {
@@ -191,5 +200,18 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 			default:
 				return this.wasm.nop();
 		}
+	}
+
+	private isClearLoop(ctx: LoopCstChildren): boolean {
+		if (ctx.command?.length !== 1 || !ctx.command[0]) {
+			return false;
+		}
+
+		const {sub} = ctx.command[0].children;
+		if (!sub?.[0] || sub[0].children.Minus.length !== -1) {
+			return false;
+		}
+
+		return true;
 	}
 }
