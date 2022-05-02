@@ -29,6 +29,30 @@ class BrainfuckParser extends CstParser {
 		});
 	});
 
+	private readonly right = this.RULE('right', () => {
+		this.AT_LEAST_ONE(() => {
+			this.CONSUME(RAngle);
+		});
+	});
+
+	private readonly left = this.RULE('left', () => {
+		this.AT_LEAST_ONE(() => {
+			this.CONSUME(LAngle);
+		});
+	});
+
+	private readonly add = this.RULE('add', () => {
+		this.AT_LEAST_ONE(() => {
+			this.CONSUME(Plus);
+		});
+	});
+
+	private readonly sub = this.RULE('sub', () => {
+		this.AT_LEAST_ONE(() => {
+			this.CONSUME(Minus);
+		});
+	});
+
 	private readonly loop = this.RULE('loop', () => {
 		this.CONSUME(LSquare);
 		this.MANY(() => {
@@ -39,10 +63,10 @@ class BrainfuckParser extends CstParser {
 
 	private readonly command = this.RULE('command', () => {
 		this.OR([
-			{ALT: () => this.CONSUME(LAngle)},
-			{ALT: () => this.CONSUME(RAngle)},
-			{ALT: () => this.CONSUME(Plus)},
-			{ALT: () => this.CONSUME(Minus)},
+			{ALT: () => this.SUBRULE(this.right)},
+			{ALT: () => this.SUBRULE(this.left)},
+			{ALT: () => this.SUBRULE(this.add)},
+			{ALT: () => this.SUBRULE(this.sub)},
 			{ALT: () => this.CONSUME(Period)},
 			{ALT: () => this.CONSUME(Comma)},
 			{ALT: () => this.SUBRULE(this.loop)},

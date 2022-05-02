@@ -1,6 +1,6 @@
 import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-default-member,import/no-named-as-default
 import type {CstNode} from 'chevrotain';
-import type {BrainfuckCstChildren, CommandCstChildren, LoopCstChildren} from '../types/@generated/cst';
+import type {AddCstChildren, BrainfuckCstChildren, CommandCstChildren, LeftCstChildren, LoopCstChildren, RightCstChildren, SubCstChildren} from '../types/@generated/cst';
 import {parser} from './grammar.js';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
@@ -74,6 +74,22 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 		return this.wasm.block(null, [...commands, this.wasm.return(this.dataPointer)]);
 	}
 
+	right(ctx: RightCstChildren) {
+		return this.addToDataPointer(ctx.RAngle.length);
+	}
+
+	left(ctx: LeftCstChildren) {
+		return this.addToDataPointer(-ctx.LAngle.length);
+	}
+
+	add(ctx: AddCstChildren) {
+		return this.addToDataValue(ctx.Plus.length);
+	}
+
+	sub(ctx: SubCstChildren) {
+		return this.addToDataValue(-ctx.Minus.length);
+	}
+
 	loop(ctx: LoopCstChildren) {
 		// Labels for branching
 		const breakLabel = `break:${ctx.LSquare[0]!.startOffset}`;
@@ -99,20 +115,20 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 			return this.visit(ctx.loop);
 		}
 
-		if (ctx.LAngle) {
-			return this.addToDataPointer(-1);
+		if (ctx.right) {
+			return this.visit(ctx.right);
 		}
 
-		if (ctx.RAngle) {
-			return this.addToDataPointer(1);
+		if (ctx.left) {
+			return this.visit(ctx.left);
 		}
 
-		if (ctx.Plus) {
-			return this.addToDataValue(1);
+		if (ctx.add) {
+			return this.visit(ctx.add);
 		}
 
-		if (ctx.Minus) {
-			return this.addToDataValue(-1);
+		if (ctx.sub) {
+			return this.visit(ctx.sub);
 		}
 
 		if (ctx.Period) {
