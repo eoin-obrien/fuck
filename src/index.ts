@@ -1,8 +1,8 @@
-import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-default-member,import/no-named-as-default
-import {BrainfuckCompiler, BrainfuckCompilerOptions} from './compiler.js';
 import {parseBrainfuck} from './grammar.js';
+import {compileInstructions} from './instruction-compiler.js';
+import {BrainfuckCompiler, BrainfuckCompilerOptions} from './wasm-compiler.js';
 
-export {EofBehavior} from './compiler.js';
+export {EofBehavior} from './wasm-compiler.js';
 
 export interface ExecutionResult {
 	memory: Uint8Array;
@@ -22,9 +22,11 @@ export class Brainfuck {
 	protected inputBuffer: number[] = [];
 
 	constructor(private readonly code: string, options?: Partial<BrainfuckCompilerOptions>) {
-		this.compiler = new BrainfuckCompiler(new binaryen.Module(), options);
 		const t0 = performance.now();
-		this.wasmModule = this.compiler.compile(parseBrainfuck(this.code));
+		this.compiler = new BrainfuckCompiler(options);
+		const cst = parseBrainfuck(this.code);
+		const instructions = compileInstructions(cst);
+		this.wasmModule = this.compiler.compile(instructions);
 		const t1 = performance.now();
 		this.compilationTime = t1 - t0;
 	}

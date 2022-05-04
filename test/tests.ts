@@ -1,6 +1,6 @@
 import test from 'ava';
 import {MismatchedTokenException, NotAllInputParsedException} from 'chevrotain';
-import {EofBehavior} from '../src/compiler.js';
+import {EofBehavior} from '../src/wasm-compiler.js';
 import {Brainfuck} from '../src/index.js';
 
 // Test cases sourced from http://brainfuck.org/tests.b

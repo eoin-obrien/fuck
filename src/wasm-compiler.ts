@@ -1,8 +1,6 @@
 import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-default-member,import/no-named-as-default
-import type {CstNode} from 'chevrotain';
-import type {AddCstChildren, BrainfuckCstChildren, CommandCstChildren, LeftCstChildren, LoopCstChildren, RightCstChildren, SubCstChildren} from '../types/@generated/cst';
-import {parser} from './grammar.js';
-import {getMultiplicationLoopFactors, isMultiplicationLoop} from './loop.js';
+import {Add, Input, Instruction, InstructionVisitor, Left, Loop, Output, Right, Sub} from './instructions.js';
+import {serialIdGenerator} from './utils.js';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
 
@@ -20,21 +18,19 @@ export interface BrainfuckCompilerOptions {
 	eofBehavior: EofBehavior;
 }
 
-export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never, number>() {
+export class BrainfuckCompiler implements InstructionVisitor<number> {
 	public readonly memorySize: number;
 	public readonly eofBehaviour: EofBehavior;
 
-	constructor(private readonly wasm: BinaryenModule, options?: Partial<BrainfuckCompilerOptions>) {
-		super();
-		// The "validateVisitor" method is a helper utility which performs static analysis
-		// to detect missing or redundant visitor methods
-		this.validateVisitor();
+	private readonly wasm: BinaryenModule = new binaryen.Module();
+	private readonly loopIdGenerator = serialIdGenerator();
 
+	constructor(options?: Partial<BrainfuckCompilerOptions>) {
 		this.memorySize = options?.memorySize ?? 30_000;
 		this.eofBehaviour = options?.eofBehavior ?? EofBehavior.NoChange;
 	}
 
-	compile(cst: CstNode): WebAssembly.Module {
+	compile(instructions: Instruction[]): WebAssembly.Module {
 		// Allocate sufficient memory
 		const pageSize = 65_536;
 		const pages = Math.ceil(this.memorySize / pageSize);
@@ -49,10 +45,10 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 		this.wasm.addFunctionImport('input', 'imports', 'input', binaryen.none, binaryen.i32);
 
 		// Main program body
-		const program = this.visit(cst);
+		const program = this.visit(instructions);
 
 		// Export program in execute() function
-		this.wasm.addFunction('execute', binaryen.none, binaryen.i32, [binaryen.i32], program);
+		this.wasm.addFunction('execute', binaryen.none, binaryen.i32, [binaryen.i32], this.wasm.block(null, [...program, this.wasm.return(this.dataPointer)]));
 		this.wasm.addFunctionExport('execute', 'execute');
 
 		// Optimize the module using default passes and levels
@@ -68,45 +64,45 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 		return new WebAssembly.Module(this.wasm.emitBinary());
 	}
 
-	brainfuck(ctx: BrainfuckCstChildren) {
-		// Visit commands in program
-		const commands = (ctx.command ?? []).map(node => this.visit(node));
-		// Wrap commands in block and return data pointer position
-		return this.wasm.block(null, [...commands, this.wasm.return(this.dataPointer)]);
-	}
-
-	right(ctx: RightCstChildren) {
-		return this.addToDataPointer(ctx.RAngle.length);
-	}
-
-	left(ctx: LeftCstChildren) {
-		return this.addToDataPointer(-ctx.LAngle.length);
-	}
-
-	add(ctx: AddCstChildren) {
-		return this.addToDataValue(ctx.Plus.length);
-	}
-
-	sub(ctx: SubCstChildren) {
-		return this.addToDataValue(-ctx.Minus.length);
-	}
-
-	loop(ctx: LoopCstChildren) {
-		// Optimize multiplication loops
-		if (isMultiplicationLoop(ctx)) {
-			// Statically compute factors
-			const factors = [...getMultiplicationLoopFactors(ctx).entries()];
-			// Multiply and copy to offset
-			const multiplications = factors.map(([offset, factor]) => this.multiply(offset, factor));
-			// Clear original cell
-			const clear = this.setDataValue(this.wasm.i32.const(0));
-			// Wrap operations in block to return a single node
-			return this.wasm.block(null, [...multiplications, clear]);
+	visit(instruction: Instruction): number;
+	visit(instructions: Instruction[]): number[];
+	visit(arg: Instruction | Instruction[]): number | number[] {
+		if (Array.isArray(arg)) {
+			return arg.map(instruction => instruction.accept(this));
 		}
 
-		// Labels for branching
-		const breakLabel = `break:${ctx.LSquare[0]!.startOffset}`;
-		const continueLabel = `continue:${ctx.LSquare[0]!.startOffset}`;
+		return arg.accept(this);
+	}
+
+	visitRight(instruction: Right) {
+		return this.addToDataPointer(instruction.value);
+	}
+
+	visitLeft(instruction: Left) {
+		return this.addToDataPointer(-instruction.value);
+	}
+
+	visitAdd(instruction: Add) {
+		return this.addToDataValue(instruction.value);
+	}
+
+	visitSub(instruction: Sub) {
+		return this.addToDataValue(-instruction.value);
+	}
+
+	visitOutput(_instruction: Output) {
+		return this.write();
+	}
+
+	visitInput(_instruction: Input) {
+		return this.read();
+	}
+
+	visitLoop(instruction: Loop) {
+		// Labels with unique IDs for branching
+		const loopId = this.loopIdGenerator.next().value;
+		const breakLabel = `break:${loopId}`;
+		const continueLabel = `continue:${loopId}`;
 
 		return this.wasm.loop(
 			continueLabel,
@@ -115,44 +111,12 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 				this.wasm.br(breakLabel, this.wasm.i32.eq(this.dataValue, this.wasm.i32.const(0))),
 
 				// Loop body commands
-				...(ctx.command ?? []).map(node => this.visit(node)),
+				...this.visit(instruction.body),
 
 				// Go back to the top of the loop
 				this.wasm.br(continueLabel),
 			]),
 		);
-	}
-
-	command(ctx: CommandCstChildren) {
-		if (ctx.loop) {
-			return this.visit(ctx.loop);
-		}
-
-		if (ctx.right) {
-			return this.visit(ctx.right);
-		}
-
-		if (ctx.left) {
-			return this.visit(ctx.left);
-		}
-
-		if (ctx.add) {
-			return this.visit(ctx.add);
-		}
-
-		if (ctx.sub) {
-			return this.visit(ctx.sub);
-		}
-
-		if (ctx.Period) {
-			return this.write();
-		}
-
-		if (ctx.Comma) {
-			return this.read();
-		}
-
-		throw new Error('Unknown command');
 	}
 
 	private get dataPointer() {
@@ -185,14 +149,14 @@ export class BrainfuckCompiler extends parser.getBaseCstVisitorConstructor<never
 		return this.wasm.i32.store8(0, 0, this.dataPointer, value);
 	}
 
-	private multiply(offset: number, factor: number) {
-		// Multiply value at data pointer by factor
-		const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
-		// Add product to value at offset
-		const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
-		// Store result at offset
-		return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
-	}
+	// Private multiply(offset: number, factor: number) {
+	// 	// Multiply value at data pointer by factor
+	// 	const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
+	// 	// Add product to value at offset
+	// 	const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
+	// 	// Store result at offset
+	// 	return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
+	// }
 
 	private write() {
 		return this.wasm.call('output', [this.dataValue], binaryen.none);
