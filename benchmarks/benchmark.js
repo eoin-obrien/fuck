@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {Benchmark, Suite} from '@jonahsnider/benchmark';
+import { Benchmark, Suite } from '@jonahsnider/benchmark';
 import {Brainfuck} from '../dist/index.js';
 
 const examplesDir = './examples';
@@ -11,8 +11,7 @@ const benchmark = new Benchmark();
 // 2. Create suite(s)
 const concatenation = new Suite('concatenation', {
 	run: {
-		// Run benchmark for 3000ms
-		durationMs: 3000,
+		trials: 5,
 	},
 	warmup: {},
 });
@@ -20,8 +19,9 @@ const concatenation = new Suite('concatenation', {
 // 3. Register tests
 for (const file of fs.readdirSync(examplesDir)) {
 	const code = fs.readFileSync(path.join(examplesDir, file)).toString();
+	const program = new Brainfuck(code);
 	concatenation.addTest(file, () => {
-		new Brainfuck(code).execute();
+		program.execute();
 	});
 }
 
