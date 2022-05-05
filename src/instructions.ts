@@ -3,6 +3,8 @@ export interface InstructionVisitor<T=void> {
 	visitLeft(instruction: Left): T;
 	visitAdd(instruction: Add): T;
 	visitSub(instruction: Sub): T;
+	visitMul(instruction: Mul): T;
+	visitClear(instruction: Clear): T;
 	visitOutput(instruction: Output): T;
 	visitInput(instruction: Input): T;
 	visitLoop(instruction: Loop): T;
@@ -66,6 +68,30 @@ export class Sub extends Instruction {
 
 	accept<T>(visitor: InstructionVisitor<T>): T {
 		return visitor.visitSub(this);
+	}
+}
+
+export class Mul extends Instruction {
+	constructor(public readonly value: number = 1, public readonly offset: number = 0) {
+		super();
+	}
+
+	get name() {
+		return 'mul';
+	}
+
+	accept<T>(visitor: InstructionVisitor<T>): T {
+		return visitor.visitMul(this);
+	}
+}
+
+export class Clear extends Instruction {
+	get name() {
+		return 'clear';
+	}
+
+	accept<T>(visitor: InstructionVisitor<T>): T {
+		return visitor.visitClear(this);
 	}
 }
 

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Benchmark, Suite } from '@jonahsnider/benchmark';
+import {Benchmark, Suite} from '@jonahsnider/benchmark';
 import {Brainfuck} from '../dist/index.js';
 
 const examplesDir = './examples';

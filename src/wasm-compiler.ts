@@ -1,5 +1,5 @@
 import binaryen from 'binaryen'; // eslint-disable-line import/no-named-as-default-member,import/no-named-as-default
-import {Add, Input, Instruction, InstructionVisitor, Left, Loop, Output, Right, Sub} from './instructions.js';
+import {Add, Clear, Input, Instruction, InstructionVisitor, Left, Loop, Mul, Output, Right, Sub} from './instructions.js';
 import {serialIdGenerator} from './utils.js';
 
 type BinaryenModule = typeof binaryen['Module']['prototype'];
@@ -90,6 +90,14 @@ export class BrainfuckCompiler implements InstructionVisitor<number> {
 		return this.addToDataValue(-instruction.value);
 	}
 
+	visitMul(instruction: Mul) {
+		return this.multiply(instruction.offset, instruction.value);
+	}
+
+	visitClear(_instruction: Clear) {
+		return this.setDataValue(this.wasm.i32.const(0));
+	}
+
 	visitOutput(_instruction: Output) {
 		return this.write();
 	}
@@ -149,14 +157,14 @@ export class BrainfuckCompiler implements InstructionVisitor<number> {
 		return this.wasm.i32.store8(0, 0, this.dataPointer, value);
 	}
 
-	// Private multiply(offset: number, factor: number) {
-	// 	// Multiply value at data pointer by factor
-	// 	const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
-	// 	// Add product to value at offset
-	// 	const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
-	// 	// Store result at offset
-	// 	return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
-	// }
+	private multiply(offset: number, factor: number) {
+		// Multiply value at data pointer by factor
+		const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
+		// Add product to value at offset
+		const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
+		// Store result at offset
+		return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
+	}
 
 	private write() {
 		return this.wasm.call('output', [this.dataValue], binaryen.none);

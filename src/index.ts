@@ -1,5 +1,7 @@
 import {parseBrainfuck} from './grammar.js';
 import {compileInstructions} from './instruction-compiler.js';
+import {contract} from './optimizers/contract.js';
+import {multiloop} from './optimizers/multiloop.js';
 import {BrainfuckCompiler, BrainfuckCompilerOptions} from './wasm-compiler.js';
 
 export {EofBehavior} from './wasm-compiler.js';
@@ -26,7 +28,11 @@ export class Brainfuck {
 		this.compiler = new BrainfuckCompiler(options);
 		const cst = parseBrainfuck(this.code);
 		const instructions = compileInstructions(cst);
-		this.wasmModule = this.compiler.compile(instructions);
+
+		// Apply optimizations
+		const optimized = multiloop(contract(instructions));
+
+		this.wasmModule = this.compiler.compile(optimized);
 		const t1 = performance.now();
 		this.compilationTime = t1 - t0;
 	}
