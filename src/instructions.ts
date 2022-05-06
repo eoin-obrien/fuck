@@ -44,7 +44,7 @@ export class Left extends Instruction {
 }
 
 export class Add extends Instruction {
-	constructor(public readonly value: number = 1) {
+	constructor(public readonly value: number = 1, public readonly offset: number = 0) {
 		super();
 	}
 
@@ -58,7 +58,7 @@ export class Add extends Instruction {
 }
 
 export class Sub extends Instruction {
-	constructor(public readonly value: number = 1) {
+	constructor(public readonly value: number = 1, public readonly offset: number = 0) {
 		super();
 	}
 
@@ -72,7 +72,7 @@ export class Sub extends Instruction {
 }
 
 export class Mul extends Instruction {
-	constructor(public readonly value: number = 1, public readonly offset: number = 0) {
+	constructor(public readonly destination: number, public readonly factor: number, public readonly offset: number = 0) {
 		super();
 	}
 
@@ -86,6 +86,10 @@ export class Mul extends Instruction {
 }
 
 export class Clear extends Instruction {
+	constructor(public readonly offset: number = 0) {
+		super();
+	}
+
 	get name() {
 		return 'clear';
 	}
@@ -96,6 +100,10 @@ export class Clear extends Instruction {
 }
 
 export class Output extends Instruction {
+	constructor(public readonly offset: number = 0) {
+		super();
+	}
+
 	get name() {
 		return 'output';
 	}
@@ -106,6 +114,10 @@ export class Output extends Instruction {
 }
 
 export class Input extends Instruction {
+	constructor(public readonly offset: number = 0) {
+		super();
+	}
+
 	get name() {
 		return 'input';
 	}

@@ -1,14 +1,15 @@
 import {parseBrainfuck} from './grammar.js';
 import {compileInstructions} from './instruction-compiler.js';
-import {contract} from './optimizers/contract.js';
-import {multiloop} from './optimizers/multiloop.js';
+import {optimizeContractions} from './optimizers/contract.js';
+import {optimizeMultiLoops} from './optimizers/multiloop.js';
+import {optimizeOffsets} from './optimizers/offset.js';
 import {BrainfuckCompiler, BrainfuckCompilerOptions} from './wasm-compiler.js';
 
 export {EofBehavior} from './wasm-compiler.js';
 
 export interface ExecutionResult {
-	memory: Uint8Array;
 	dataPointer: number;
+	memory: Uint8Array;
 	output: string;
 	compilationTime: number;
 	instantiationTime: number;
@@ -30,7 +31,7 @@ export class Brainfuck {
 		const instructions = compileInstructions(cst);
 
 		// Apply optimizations
-		const optimized = multiloop(contract(instructions));
+		const optimized = optimizeOffsets(optimizeMultiLoops(optimizeContractions(instructions)));
 
 		this.wasmModule = this.compiler.compile(optimized);
 		const t1 = performance.now();
@@ -59,8 +60,8 @@ export class Brainfuck {
 		executionTime = performance.now() - executionTime;
 
 		return {
-			memory: new Uint8Array(memory.buffer, 0, this.compiler.memorySize),
 			dataPointer,
+			memory: new Uint8Array(memory.buffer, 0, this.compiler.memorySize),
 			output: this.decodeOutput(this.outputBuffer),
 			compilationTime: this.compilationTime,
 			instantiationTime,
@@ -86,3 +87,4 @@ export class Brainfuck {
 		return decoder.decode(Uint8Array.from(output));
 	}
 }
+

@@ -1,16 +1,16 @@
 import {Add, Clear, Input, Instruction, Left, Loop, Mul, Output, Right, Sub} from '../instructions.js';
 
-export function multiloop(instructions: Instruction[]): Instruction[] {
+export function optimizeMultiLoops(instructions: Instruction[]): Instruction[] {
 	const optimized: Instruction[] = [];
 
 	for (const instruction of instructions) {
 		if (instruction instanceof Loop) {
-			if (isMultiplicationLoop(instruction)) {
+			if (isMultiLoop(instruction)) {
 				// Replace multiplication loop with Mul and Clear instructions
-				optimized.push(optimizeMultiplicationLoop(instruction));
+				optimized.push(...optimizeMultiLoop(instruction));
 			} else {
 				// Recursively optimize loops
-				optimized.push(new Loop(multiloop(instruction.body)));
+				optimized.push(new Loop(optimizeMultiLoops(instruction.body)));
 			}
 		} else {
 			optimized.push(instruction);
@@ -20,7 +20,7 @@ export function multiloop(instructions: Instruction[]): Instruction[] {
 	return optimized;
 }
 
-export function isMultiplicationLoop(loop: Loop): boolean {
+export function isMultiLoop(loop: Loop): boolean {
 	// Can't have I/O or nested loops
 	const hasInvalidInstructions = loop.body.some(instruction => instruction instanceof Output || instruction instanceof Input || instruction instanceof Loop);
 	if (hasInvalidInstructions) {
@@ -52,7 +52,7 @@ export function isMultiplicationLoop(loop: Loop): boolean {
 	return offset === 0 && change === -1;
 }
 
-export function optimizeMultiplicationLoop(loop: Loop): Loop {
+export function optimizeMultiLoop(loop: Loop): Instruction[] {
 	const factors = new Map<number, number>();
 	let offset = 0;
 	for (const instruction of loop.body) {
@@ -73,6 +73,6 @@ export function optimizeMultiplicationLoop(loop: Loop): Loop {
 		}
 	}
 
-	const multiplications = [...factors.keys()].map(offset => new Mul(factors.get(offset), offset));
-	return new Loop([...multiplications, new Clear()]);
+	const multiplications = [...factors.entries()].map(([destination, factor]) => new Mul(destination, factor));
+	return [...multiplications, new Clear()];
 }

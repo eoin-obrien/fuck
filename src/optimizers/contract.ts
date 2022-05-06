@@ -1,6 +1,6 @@
 import {Add, Instruction, Left, Loop, Right, Sub} from '../instructions.js';
 
-export function contract(instructions: Instruction[]): Instruction[] {
+export function optimizeContractions(instructions: Instruction[]): Instruction[] {
 	const optimized: Instruction[] = [];
 
 	for (const instruction of instructions) {
@@ -8,7 +8,7 @@ export function contract(instructions: Instruction[]): Instruction[] {
 
 		if (instruction instanceof Loop) {
 			// Recursively optimize loop bodies
-			const optimizedLoop = new Loop(contract(instruction.body));
+			const optimizedLoop = new Loop(optimizeContractions(instruction.body));
 			optimized.push(optimizedLoop);
 		} else if (instruction instanceof Right && previousInstruction instanceof Right) {
 			// Merge consecutive >

@@ -48,7 +48,8 @@ export class BrainfuckCompiler implements InstructionVisitor<number> {
 		const program = this.visit(instructions);
 
 		// Export program in execute() function
-		this.wasm.addFunction('execute', binaryen.none, binaryen.i32, [binaryen.i32], this.wasm.block(null, [...program, this.wasm.return(this.dataPointer)]));
+		this.wasm.addFunction('execute', binaryen.none, binaryen.none, [binaryen.i32],
+			this.wasm.block(null, program));
 		this.wasm.addFunctionExport('execute', 'execute');
 
 		// Optimize the module using default passes and levels
@@ -75,35 +76,53 @@ export class BrainfuckCompiler implements InstructionVisitor<number> {
 	}
 
 	visitRight(instruction: Right) {
-		return this.addToDataPointer(instruction.value);
+		// Move data pointer to the right (farther from zero)
+		return this.wasm.global.set('dataPointer', this.getDataPointer(instruction.value));
 	}
 
 	visitLeft(instruction: Left) {
-		return this.addToDataPointer(-instruction.value);
+		// Move data pointer to the left (closer to zero)
+		return this.wasm.global.set('dataPointer', this.getDataPointer(-instruction.value));
 	}
 
 	visitAdd(instruction: Add) {
-		return this.addToDataValue(instruction.value);
+		return this.addToDataValue(instruction.value, instruction.offset);
 	}
 
 	visitSub(instruction: Sub) {
-		return this.addToDataValue(-instruction.value);
+		return this.addToDataValue(-instruction.value, instruction.offset);
 	}
 
 	visitMul(instruction: Mul) {
-		return this.multiply(instruction.offset, instruction.value);
+		const destOffset = instruction.destination + instruction.offset;
+		// Multiply value at data pointer by factor
+		const product = this.wasm.i32.mul(this.getDataValue(instruction.offset), this.wasm.i32.const(instruction.factor));
+		// Add product to value at offset
+		const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.getDataPointer(destOffset)));
+		// Store result at offset
+		return this.wasm.i32.store8(0, 0, this.getDataPointer(destOffset), result);
 	}
 
-	visitClear(_instruction: Clear) {
-		return this.setDataValue(this.wasm.i32.const(0));
+	visitClear(instruction: Clear) {
+		return this.setDataValue(this.wasm.i32.const(0), instruction.offset);
 	}
 
-	visitOutput(_instruction: Output) {
-		return this.write();
+	visitOutput(instruction: Output) {
+		return this.wasm.call('output', [this.getDataValue(instruction.offset)], binaryen.none);
 	}
 
-	visitInput(_instruction: Input) {
-		return this.read();
+	visitInput(instruction: Input) {
+		const inputBuffer = this.wasm.global.get('inputBuffer', binaryen.i32);
+		return this.wasm.block(null, [
+			// Temporarily store input in global variable for comparison
+			this.wasm.global.set('inputBuffer', this.wasm.call('input', [], binaryen.i32)),
+			// Write input to memory and handle EOF conditions
+			this.wasm.if(
+				this.wasm.i32.ge_s(inputBuffer, this.wasm.i32.const(0)),
+				this.wasm.i32.store8(0, 0, this.getDataPointer(instruction.offset), inputBuffer),
+				this.handleEof(instruction.offset),
+			),
+		]);
 	}
 
 	visitLoop(instruction: Loop) {
@@ -116,80 +135,48 @@ export class BrainfuckCompiler implements InstructionVisitor<number> {
 			continueLabel,
 			this.wasm.block(breakLabel, [
 				// Break out of the loop if the data cell is equal to 0
-				this.wasm.br(breakLabel, this.wasm.i32.eq(this.dataValue, this.wasm.i32.const(0))),
-
+				this.wasm.br(breakLabel, this.wasm.i32.eq(this.getDataValue(), this.wasm.i32.const(0))),
 				// Loop body commands
 				...this.visit(instruction.body),
-
 				// Go back to the top of the loop
 				this.wasm.br(continueLabel),
 			]),
 		);
 	}
 
-	private get dataPointer() {
-		return this.wasm.global.get('dataPointer', binaryen.i32);
-	}
+	private getDataPointer(offset = 0) {
+		const dataPointer = this.wasm.global.get('dataPointer', binaryen.i32);
+		if (offset === 0) {
+			// No need to offset, just return the pointer
+			return dataPointer;
+		}
 
-	private get dataValue() {
-		return this.wasm.i32.load8_u(0, 0, this.dataPointer);
-	}
-
-	private offsetDataPointer(offset: number) {
+		// Offset data pointer and wrap around if it exceeds memory size
 		return this.wasm.i32.rem_u(
-			this.wasm.i32.add(this.dataPointer, this.wasm.i32.const(offset)),
+			this.wasm.i32.add(dataPointer, this.wasm.i32.const(offset)),
 			this.wasm.i32.const(this.memorySize),
 		);
 	}
 
-	private addToDataPointer(value: number) {
-		// Wrap pointer at boundaries
-		const result = this.offsetDataPointer(value);
-		return this.wasm.global.set('dataPointer', result);
+	private addToDataValue(value: number, offset: number) {
+		const result = this.wasm.i32.add(this.getDataValue(offset), this.wasm.i32.const(value));
+		return this.setDataValue(result, offset);
 	}
 
-	private addToDataValue(value: number) {
-		const result = this.wasm.i32.add(this.dataValue, this.wasm.i32.const(value));
-		return this.setDataValue(result);
+	private getDataValue(offset = 0) {
+		return this.wasm.i32.load8_u(0, 0, this.getDataPointer(offset));
 	}
 
-	private setDataValue(value: number) {
-		return this.wasm.i32.store8(0, 0, this.dataPointer, value);
+	private setDataValue(value: number, offset = 0) {
+		return this.wasm.i32.store8(0, 0, this.getDataPointer(offset), value);
 	}
 
-	private multiply(offset: number, factor: number) {
-		// Multiply value at data pointer by factor
-		const product = this.wasm.i32.mul(this.dataValue, this.wasm.i32.const(factor));
-		// Add product to value at offset
-		const result = this.wasm.i32.add(product, this.wasm.i32.load8_u(0, 0, this.offsetDataPointer(offset)));
-		// Store result at offset
-		return this.wasm.i32.store8(0, 0, this.offsetDataPointer(offset), result);
-	}
-
-	private write() {
-		return this.wasm.call('output', [this.dataValue], binaryen.none);
-	}
-
-	private read() {
-		const inputBuffer = this.wasm.global.get('inputBuffer', binaryen.i32);
-		return this.wasm.block(null, [
-			// Temporarily store input in global variable for comparison
-			this.wasm.global.set('inputBuffer', this.wasm.call('input', [], binaryen.i32)),
-			// Write input to memory and handle EOF conditions
-			this.wasm.if(
-				this.wasm.i32.ge_s(inputBuffer, this.wasm.i32.const(0)),
-				this.wasm.i32.store8(0, 0, this.dataPointer, inputBuffer),
-				this.handleEof(),
-			),
-		]);
-	}
-
-	private handleEof() {
+	private handleEof(offset = 0) {
 		switch (this.eofBehaviour) {
 			case EofBehavior.SetZero:
-				return this.wasm.i32.store8(0, 0, this.dataPointer, this.wasm.i32.const(0));
+				return this.wasm.i32.store8(0, 0, this.getDataPointer(offset), this.wasm.i32.const(0));
 			case EofBehavior.SetAllBits:
-				return this.wasm.i32.store8(0, 0, this.dataPointer, this.wasm.i32.const(255));
+				return this.wasm.i32.store8(0, 0, this.getDataPointer(offset), this.wasm.i32.const(255));
 			default:
 				return this.wasm.nop();
 		}
