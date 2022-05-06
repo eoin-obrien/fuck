@@ -1,9 +1,7 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import {Benchmark, Suite} from '@jonahsnider/benchmark';
+import glob from 'glob';
 import {Brainfuck} from '../dist/index.js';
-
-const examplesDir = './examples';
 
 // 1. Create benchmark
 const benchmark = new Benchmark();
@@ -11,17 +9,19 @@ const benchmark = new Benchmark();
 // 2. Create suite(s)
 const concatenation = new Suite('concatenation', {
 	run: {
-		trials: 5,
+		trials: 1,
 	},
 	warmup: {},
 });
 
 // 3. Register tests
-for (const file of fs.readdirSync(examplesDir)) {
-	const code = fs.readFileSync(path.join(examplesDir, file)).toString();
+for (const file of glob.sync('examples/*.b')) {
+	const code = fs.readFileSync(file).toString();
 	const program = new Brainfuck(code);
+	const inputFile = `${file}.in`;
+	const input = fs.existsSync(inputFile) ? fs.readFileSync(inputFile).toString() : '';
 	concatenation.addTest(file, () => {
-		program.execute();
+		program.execute(input);
 	});
 }
 
