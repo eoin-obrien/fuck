@@ -1,16 +1,16 @@
 import {Add, Clear, Input, Instruction, Left, Loop, Mul, Output, Right, Sub} from '../instructions.js';
 
-export function optimizeMultiLoops(instructions: Instruction[]): Instruction[] {
+export function optimizeLoops(instructions: Instruction[]): Instruction[] {
 	const optimized: Instruction[] = [];
 
 	for (const instruction of instructions) {
 		if (instruction instanceof Loop) {
-			if (isMultiLoop(instruction)) {
+			if (isLoop(instruction)) {
 				// Replace multiplication loop with Mul and Clear instructions
-				optimized.push(...optimizeMultiLoop(instruction));
+				optimized.push(...optimizeLoop(instruction));
 			} else {
 				// Recursively optimize loops
-				optimized.push(new Loop(optimizeMultiLoops(instruction.body)));
+				optimized.push(new Loop(optimizeLoops(instruction.body)));
 			}
 		} else {
 			optimized.push(instruction);
@@ -20,7 +20,7 @@ export function optimizeMultiLoops(instructions: Instruction[]): Instruction[] {
 	return optimized;
 }
 
-export function isMultiLoop(loop: Loop): boolean {
+export function isLoop(loop: Loop): boolean {
 	// Can't have I/O or nested loops
 	const hasInvalidInstructions = loop.body.some(instruction => instruction instanceof Output || instruction instanceof Input || instruction instanceof Loop);
 	if (hasInvalidInstructions) {
@@ -52,7 +52,7 @@ export function isMultiLoop(loop: Loop): boolean {
 	return offset === 0 && change === -1;
 }
 
-export function optimizeMultiLoop(loop: Loop): Instruction[] {
+export function optimizeLoop(loop: Loop): Instruction[] {
 	const factors = new Map<number, number>();
 	let offset = 0;
 	for (const instruction of loop.body) {

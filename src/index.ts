@@ -1,7 +1,7 @@
 import {parseBrainfuck} from './grammar.js';
 import {compileInstructions} from './instruction-compiler.js';
 import {optimizeContractions} from './optimizers/contract.js';
-import {optimizeMultiLoops} from './optimizers/multiloop.js';
+import {optimizeLoops} from './optimizers/loop.js';
 import {optimizeOffsets} from './optimizers/offset.js';
 import {BrainfuckCompiler, BrainfuckCompilerOptions} from './wasm-compiler.js';
 
@@ -31,7 +31,7 @@ export class Brainfuck {
 		const instructions = compileInstructions(cst);
 
 		// Apply optimizations
-		const optimized = optimizeOffsets(optimizeMultiLoops(optimizeContractions(instructions)));
+		const optimized = optimizeOffsets(optimizeLoops(optimizeContractions(instructions)));
 
 		this.wasmModule = this.compiler.compile(optimized);
 		const t1 = performance.now();
