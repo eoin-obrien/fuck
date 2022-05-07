@@ -11,21 +11,16 @@ export interface ExecutionResult {
 	dataPointer: number;
 	memory: Uint8Array;
 	output: string;
-	compilationTime: number;
-	instantiationTime: number;
-	executionTime: number;
 }
 
 export class Brainfuck {
 	protected readonly compiler: BrainfuckCompiler;
 	protected readonly wasmModule: WebAssembly.Module;
-	protected readonly compilationTime: number;
 
 	protected outputBuffer: number[] = [];
 	protected inputBuffer: number[] = [];
 
 	constructor(private readonly code: string, options?: Partial<BrainfuckCompilerOptions>) {
-		const t0 = performance.now();
 		this.compiler = new BrainfuckCompiler(options);
 		const cst = parseBrainfuck(this.code);
 		const instructions = compileInstructions(cst);
@@ -34,8 +29,6 @@ export class Brainfuck {
 		const optimized = optimizeOffsets(optimizeLoops(optimizeContractions(instructions)));
 
 		this.wasmModule = this.compiler.compile(optimized);
-		const t1 = performance.now();
-		this.compilationTime = t1 - t0;
 	}
 
 	execute(input = ''): ExecutionResult {
@@ -44,28 +37,21 @@ export class Brainfuck {
 		this.inputBuffer = this.encodeInput(input);
 
 		// Instantiate wasm module
-		let instantiationTime = performance.now();
 		const instance = new WebAssembly.Instance(this.wasmModule, {
 			imports: {
 				output: this.output.bind(this),
 				input: this.input.bind(this),
 			},
 		});
-		instantiationTime = performance.now() - instantiationTime;
 		const {execute, memory} = instance.exports as {execute: () => number; memory: WebAssembly.Memory};
 
 		// Invoke wasm module
-		let executionTime = performance.now();
 		const dataPointer = execute();
-		executionTime = performance.now() - executionTime;
 
 		return {
 			dataPointer,
 			memory: new Uint8Array(memory.buffer, 0, this.compiler.memorySize),
 			output: this.decodeOutput(this.outputBuffer),
-			compilationTime: this.compilationTime,
-			instantiationTime,
-			executionTime,
 		};
 	}
 
