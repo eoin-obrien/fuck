@@ -1,6 +1,6 @@
 {
   "name": "wasm-brainfuck",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Blazing-fast Brainfuck compiler for WebAssembly",
   "license": "MIT",
   "repository": "eoin-obrien/fuck",
